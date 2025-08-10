@@ -109,13 +109,13 @@ const generateCaptionsFlow = ai.defineFlow(
     outputSchema: GenerateCaptionsOutputSchema,
   },
   async input => {
-    // Log the input to ensure image URL is being passed correctly
+    // Sanitized logging - don't expose full URLs or sensitive data
     console.log('🔍 Caption Generation Input:', {
       mood: input.mood,
-      imageUrl: input.imageUrl ? `${input.imageUrl.substring(0, 50)}...` : 'NO IMAGE URL',
+      imageUrl: input.imageUrl ? 'Image uploaded successfully' : 'NO IMAGE URL',
       description: input.description || 'No description provided',
-      userId: input.userId || 'Anonymous',
-      ipAddress: input.ipAddress || 'Unknown'
+      userId: input.userId ? 'Authenticated user' : 'Anonymous user',
+      ipAddress: 'IP logged for rate limiting'
     });
 
     // Validate that we have an image URL
@@ -141,7 +141,7 @@ const generateCaptionsFlow = ai.defineFlow(
       const userType = isAuthenticated ? 'registered users' : 'anonymous users';
       const maxAllowed = rateLimitConfig.MAX_GENERATIONS;
       
-      console.log(`🚫 Rate limit exceeded for ${rateLimitKey}`);
+      console.log(`🚫 Rate limit exceeded for user type: ${isAuthenticated ? 'authenticated' : 'anonymous'}`);
       
         const daysRemaining = Math.ceil(hoursRemaining / 24);
         console.log(`🔍 Debug: hoursRemaining=${hoursRemaining}, daysRemaining=${daysRemaining}`);
@@ -168,7 +168,7 @@ const generateCaptionsFlow = ai.defineFlow(
     console.log('🤖 Sending request to AI with image for analysis...');
     const {output} = await generateCaptionsPrompt(input);
     
-    console.log('✨ AI Generated Captions:', output?.captions || 'No captions generated');
+    console.log('✨ AI Generated Captions:', output?.captions ? `${output.captions.length} captions generated` : 'No captions generated');
 
     if (output && output.captions) {
         try {
@@ -177,7 +177,7 @@ const generateCaptionsFlow = ai.defineFlow(
             const db = client.db();
             const postsCollection = db.collection('posts');
             
-            console.log('Attempting to save single post with multiple captions to database...');
+            console.log('💾 Saving caption set to database...');
             
             // Create a single document with all captions
             const postToInsert = {

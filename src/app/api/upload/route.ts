@@ -3,6 +3,16 @@ import ImageKit from 'imagekit';
 import { v4 as uuidv4 } from 'uuid';
 import path from 'path';
 
+// Vercel API configuration
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '10mb',
+    },
+    responseLimit: false,
+  },
+};
+
 const imagekit = new ImageKit({
   publicKey: process.env.IMAGEKIT_PUBLIC_KEY!,
   privateKey: process.env.IMAGEKIT_PRIVATE_KEY!,
@@ -69,7 +79,8 @@ export async function POST(req: Request) {
     const fileExtension = path.extname(file.name);
     const uniqueFileName = `${uuidv4()}${fileExtension}`;
 
-    console.log(`📤 Starting ImageKit upload for file: ${uniqueFileName} (${file.size} bytes)`);
+    // Sanitized logging - don't expose full URLs
+    console.log(`📤 Starting ImageKit upload for file: ${uniqueFileName} (${Math.round(file.size / 1024)}KB)`);
 
     const uploadParams = {
       file: buffer,
@@ -82,11 +93,12 @@ export async function POST(req: Request) {
     // Use retry logic for ImageKit upload
     const response = await uploadWithRetry(uploadParams, 3);
 
-    console.log(`🎉 ImageKit upload completed successfully: ${response.url}`);
+    // Sanitized success logging
+    console.log(`✅ ImageKit upload completed successfully for: ${uniqueFileName}`);
     return NextResponse.json({ success: true, url: response.url }, { status: 200 });
 
   } catch (error: any) {
-    console.error('💥 Final ImageKit Upload Error:', error);
+    console.error('💥 Upload Error:', error.message);
     
     // Provide more helpful error messages
     let errorMessage = 'Upload failed. Please try again.';

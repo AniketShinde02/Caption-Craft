@@ -5,6 +5,15 @@ import dbConnect from '@/lib/db';
 import User from '@/models/User';
 import bcrypt from 'bcryptjs';
 
+// Debug: Check NextAuth environment variables
+console.log('🔐 NextAuth Environment Check:', {
+  NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET ? '✅ Set' : '❌ Missing',
+  NEXTAUTH_URL: process.env.NEXTAUTH_URL || 'undefined',
+  NODE_ENV: process.env.NODE_ENV || 'undefined',
+  GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID ? '✅ Set' : '❌ Missing',
+  GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET ? '✅ Set' : '❌ Missing'
+});
+
 
 export const authOptions: NextAuthOptions = {
   providers: [

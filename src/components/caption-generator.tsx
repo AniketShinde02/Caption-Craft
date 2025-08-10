@@ -113,12 +113,12 @@ export function CaptionGenerator() {
         throw new Error(uploadData.message || 'Image upload failed.');
       }
 
-      // Generate captions using the uploaded image, mood, and description
+      // Send to AI for analysis
       console.log('📸 Sending to AI for analysis:', {
         mood: values.mood,
-        description: values.description,
-        imageUrl: uploadData.url,
-        userId: session?.user?.id
+        description: values.description || '',
+        imageUrl: 'Image uploaded successfully',
+        userId: session?.user?.id || undefined
       });
       
       const captionResponse = await fetch('/api/generate-captions', {

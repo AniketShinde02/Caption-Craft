@@ -22,7 +22,6 @@ const BlockedCredentialsSchema: Schema = new Schema({
   blockedUntil: {
     type: Date,
     required: true,
-    index: true,
   },
   attempts: {
     type: Number,

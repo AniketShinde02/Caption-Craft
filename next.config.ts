@@ -10,9 +10,7 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  experimental: {
-    serverComponentsExternalPackages: ['imagekit'],
-  },
+  serverExternalPackages: ['imagekit'],
   images: {
     remotePatterns: [
       {

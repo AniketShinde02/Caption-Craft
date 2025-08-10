@@ -3,6 +3,14 @@ import 'dotenv/config';
 import mongoose, { Mongoose } from 'mongoose';
 import { MongoClient } from 'mongodb';
 
+// Debug: Check environment variables
+console.log('🔍 Environment Check:', {
+  MONGODB_URI: process.env.MONGODB_URI ? '✅ Set' : '❌ Missing',
+  NODE_ENV: process.env.NODE_ENV || 'undefined',
+  NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET ? '✅ Set' : '❌ Missing',
+  IMAGEKIT_PUBLIC_KEY: process.env.IMAGEKIT_PUBLIC_KEY ? '✅ Set' : '❌ Missing'
+});
+
 const MONGODB_URI = process.env.MONGODB_URI;
 
 if (!MONGODB_URI) {

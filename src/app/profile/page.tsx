@@ -27,8 +27,38 @@ export default function ProfilePage() {
       },
     });
 
+    // Debug logging
+    console.log('🔍 Profile Page Debug:', { status, session: !!session, userId: session?.user?.id });
+
     const [posts, setPosts] = useState<IPost[]>([]);
     const [isLoadingPosts, setIsLoadingPosts] = useState(true);
+
+    // Show loading state while session is loading
+    if (status === 'loading') {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <div className="text-center">
+                    <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
+                    <p className="text-muted-foreground">Loading profile...</p>
+                </div>
+            </div>
+        );
+    }
+
+    // Show error state if session failed
+    if (status === 'unauthenticated') {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <div className="text-center">
+                    <AlertCircle className="w-8 h-8 text-destructive mx-auto mb-4" />
+                    <p className="text-destructive mb-4">Authentication required</p>
+                    <Link href="/" className="text-primary hover:underline">
+                        Go back to home
+                    </Link>
+                </div>
+            </div>
+        );
+    }
 
     const [username, setUsername] = useState<string>('');
     const [title, setTitle] = useState<string>('');
@@ -59,29 +89,45 @@ export default function ProfilePage() {
     useEffect(() => {
         const fetchData = async () => {
             if (session?.user?.id) {
+                console.log('🔄 Fetching profile data for user:', session.user.id);
                 setIsLoadingPosts(true);
                 try {
                     const [postsRes, userRes] = await Promise.all([
                         fetch('/api/posts'),
                         fetch('/api/user'),
                     ]);
+                    
+                    console.log('📊 API Responses:', { 
+                        postsStatus: postsRes.status, 
+                        userStatus: userRes.status 
+                    });
+                    
                     if (postsRes.ok) {
                         const p = await postsRes.json();
+                        console.log('📝 Posts data:', p);
                         setPosts(p.data);
+                    } else {
+                        console.error('❌ Posts API failed:', postsRes.status, postsRes.statusText);
                     }
+                    
                     if (userRes.ok) {
                         const u = await userRes.json();
+                        console.log('👤 User data:', u);
                         setUsername(u.data.username || 'Cursor AI');
                         setTitle(u.data.title || 'AI Assistant');
                         setBio(u.data.bio || 'Your intelligent coding companion, ready to help you build amazing applications with precision and creativity. Let\'s code the future together!');
                         setImageUrl(u.data.image || '');
                         setProfileImage(u.data.image || '');
+                    } else {
+                        console.error('❌ User API failed:', userRes.status, userRes.statusText);
                     }
                 } catch (error) {
-                    console.error('Failed to fetch data', error);
+                    console.error('💥 Failed to fetch data', error);
                 } finally {
                     setIsLoadingPosts(false);
                 }
+            } else {
+                console.log('⏳ No session user ID yet, waiting...');
             }
         };
 

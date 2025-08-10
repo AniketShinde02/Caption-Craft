@@ -220,7 +220,7 @@ export async function blockCredentials(
       });
     }
     
-    console.log(`🚫 Blocked credentials: ${email} for ${blockDurationHours} hours (attempt ${attempts}). Reason: ${reason}`);
+    console.log(`🚫 Blocked credentials: ${email ? 'Email blocked' : 'IP blocked'} for ${blockDurationHours} hours (attempt ${attempts}). Reason: ${reason}`);
   } catch (error) {
     console.error('Error blocking credentials:', error);
     // Fallback to in-memory store
@@ -283,7 +283,7 @@ function blockCredentialsInMemory(email: string, reason: string): void {
   const blockedUntil = now + (blockDurationHours * 60 * 60 * 1000);
   
   blockedCredentialsStore.set(key, { blockedUntil, attempts });
-  console.log(`🚫 [Memory] Blocked credentials: ${email} for ${blockDurationHours} hours (attempt ${attempts}). Reason: ${reason}`);
+  console.log(`🚫 [Memory] Blocked credentials: ${email ? 'Email blocked' : 'IP blocked'} for ${blockDurationHours} hours (attempt ${attempts}). Reason: ${reason}`);
 }
 
 function isCredentialsBlockedInMemory(email: string): {

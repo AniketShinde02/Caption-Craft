@@ -24,7 +24,7 @@ const RateLimitSchema: Schema = new Schema({
   resetTime: {
     type: Date,
     required: true,
-    index: true, // For efficient cleanup queries
+    // Removed index: true to avoid duplicate with schema.index() below
   },
   createdAt: {
     type: Date,
