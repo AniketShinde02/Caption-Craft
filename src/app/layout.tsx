@@ -15,6 +15,7 @@ import ServerHeader from '@/components/server-header';
 import Footer from '@/components/footer';
 import CookieConsent from '@/components/CookieConsent';
 import { SessionValidator } from '@/components/session-validator';
+import { Analytics } from '@vercel/analytics/react';
 import { Inter } from 'next/font/google';
 
 const inter = Inter({
@@ -43,6 +44,7 @@ export default function RootLayout({
           <Footer />
           <Toaster />
           <CookieConsent />
+          <Analytics />
         </Providers>
       </body>
     </html>
