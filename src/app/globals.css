@@ -1,0 +1,157 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 240 10% 99%; /* Bright White */
+    --foreground: 240 5% 10%; /* Near Black */
+    --card: 240 10% 99%;
+    --card-foreground: 240 5% 10%;
+    --popover: 240 10% 99%;
+    --popover-foreground: 240 5% 10%;
+    --primary: 203 100% 62%; /* Electric Blue */
+    --primary-foreground: 240 5% 10%;
+    --secondary: 339 100% 65%; /* Hot Pink */
+    --secondary-foreground: 240 10% 99%;
+    --muted: 240 5% 96%;
+    --muted-foreground: 240 4% 46%;
+    --accent: 80 100% 50%; /* Lime Green */
+    --accent-foreground: 240 5% 10%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 240 10% 99%;
+    --border: 240 6% 90%;
+    --input: 240 6% 90%;
+    --ring: 203 100% 62%;
+    --radius: 0.5rem;
+  }
+ 
+  .dark {
+    --background: 220 13% 12%; /* Charcoal */
+    --foreground: 240 10% 98%; /* Bright White */
+    --card: 220 13% 12%;
+    --card-foreground: 240 10% 98%;
+    --popover: 220 13% 12%;
+    --popover-foreground: 240 10% 98%;
+    --primary: 203 100% 62%; /* Electric Blue */
+    --primary-foreground: 220 13% 12%;
+    --secondary: 339 100% 65%; /* Hot Pink */
+    --secondary-foreground: 240 10% 98%;
+    --muted: 220 13% 18%;
+    --muted-foreground: 240 4% 65%;
+    --accent: 80 100% 50%; /* Lime Green */
+    --accent-foreground: 220 13% 12%;
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 240 10% 98%;
+    --border: 220 13% 22%;
+    --input: 220 13% 22%;
+    --ring: 203 100% 62%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  .gradient-text {
+    @apply bg-gradient-to-r from-primary via-secondary to-accent text-transparent bg-clip-text;
+  }
+}
+
+/* Hide scrollbar for all browsers while keeping scroll functionality */
+@layer utilities {
+  /* Hide scrollbar for Webkit browsers (Chrome, Safari, Edge) */
+  ::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* Hide scrollbar for all elements */
+  * {
+    -ms-overflow-style: none;  /* Internet Explorer 10+ */
+    scrollbar-width: none;     /* Firefox */
+  }
+  
+  /* Ensure body and html have no visible scrollbar */
+  html, body {
+    -ms-overflow-style: none;  /* Internet Explorer 10+ */
+    scrollbar-width: none;     /* Firefox */
+  }
+  
+  html::-webkit-scrollbar,
+  body::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Responsive design utilities */
+@layer utilities {
+  /* Mobile-first responsive text sizing */
+  .text-responsive-xs { font-size: 0.75rem; }
+  .text-responsive-sm { font-size: 0.875rem; }
+  .text-responsive-base { font-size: 1rem; }
+  .text-responsive-lg { font-size: 1.125rem; }
+  .text-responsive-xl { font-size: 1.25rem; }
+  
+  @media (min-width: 640px) {
+    .text-responsive-xs { font-size: 0.875rem; }
+    .text-responsive-sm { font-size: 1rem; }
+    .text-responsive-base { font-size: 1.125rem; }
+    .text-responsive-lg { font-size: 1.25rem; }
+    .text-responsive-xl { font-size: 1.5rem; }
+  }
+  
+  @media (min-width: 768px) {
+    .text-responsive-xs { font-size: 0.875rem; }
+    .text-responsive-sm { font-size: 1rem; }
+    .text-responsive-base { font-size: 1.125rem; }
+    .text-responsive-lg { font-size: 1.5rem; }
+    .text-responsive-xl { font-size: 1.875rem; }
+  }
+  
+  /* Mobile touch targets */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Responsive spacing */
+  .responsive-padding {
+    padding: 1rem;
+  }
+  
+  @media (min-width: 640px) {
+    .responsive-padding {
+      padding: 1.5rem;
+    }
+  }
+  
+  @media (min-width: 768px) {
+    .responsive-padding {
+      padding: 2rem;
+    }
+  }
+  
+  /* Responsive containers */
+  .container-responsive {
+    width: 100%;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  
+  @media (min-width: 640px) {
+    .container-responsive {
+      padding-left: 1.5rem;
+      padding-right: 1.5rem;
+    }
+  }
+  
+  @media (min-width: 1024px) {
+    .container-responsive {
+      padding-left: 2rem;
+      padding-right: 2rem;
+    }
+  }
+}
