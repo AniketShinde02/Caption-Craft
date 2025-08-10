@@ -38,6 +38,15 @@ async function uploadWithRetry(uploadParams: any, maxRetries = 3): Promise<any> 
 
 export async function POST(req: Request) {
   try {
+    // Check content length first
+    const contentLength = req.headers.get('content-length');
+    if (contentLength && parseInt(contentLength) > 10 * 1024 * 1024) {
+      return NextResponse.json({ 
+        success: false, 
+        message: 'File too large. Please upload an image smaller than 10MB.' 
+      }, { status: 413 });
+    }
+
     const formData = await req.formData();
     const file = formData.get('file') as File;
 
@@ -52,7 +61,7 @@ export async function POST(req: Request) {
 
     // Validate file size (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
-      return NextResponse.json({ success: false, message: 'File too large. Please upload an image smaller than 10MB.' }, { status: 400 });
+      return NextResponse.json({ success: false, message: 'File too large. Please upload an image smaller than 10MB.' }, { status: 413 });
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
@@ -81,6 +90,7 @@ export async function POST(req: Request) {
     
     // Provide more helpful error messages
     let errorMessage = 'Upload failed. Please try again.';
+    let statusCode = 500;
     
     if (error.message?.includes('contact support@imagekit.io')) {
       errorMessage = 'ImageKit service temporarily unavailable. Please try again in a moment.';
@@ -88,12 +98,15 @@ export async function POST(req: Request) {
       errorMessage = 'Network error. Please check your connection and try again.';
     } else if (error.message?.includes('timeout')) {
       errorMessage = 'Upload timeout. Please try with a smaller image.';
+    } else if (error.message?.includes('too large') || error.message?.includes('413')) {
+      errorMessage = 'File too large. Please upload an image smaller than 10MB.';
+      statusCode = 413;
     }
     
     return NextResponse.json({ 
       success: false, 
       message: errorMessage,
       details: process.env.NODE_ENV === 'development' ? error.message : undefined
-    }, { status: 500 });
+    }, { status: statusCode });
   }
 }
