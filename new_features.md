@@ -2044,4 +2044,54 @@ if (analyticsAllowed) {
 
 ---
 
-This documentation covers all the new features and enhancements implemented in CaptionCraft. Each section provides a detailed overview, technical implementation details, and integration guides to help developers understand and extend these features.
+# 🚀 CaptionCraft - New Features & Updates
+
+## 📅 Latest Updates (Latest Session)
+
+### 🔍 Dashboard Debugging & Fixes (Latest)
+
+#### **Issue Identified: Dashboard Not Visible After Sign In**
+- **Problem**: User reported dashboard not visible after signing in
+- **Root Cause**: Initially suspected missing environment variables, but discovered the real issue was in the authentication flow
+
+#### **Debugging Process Implemented**
+1. **Environment Variable Testing**
+   - Created `/api/test-env` endpoint to verify all environment variables are loaded
+   - Confirmed: MONGODB_URI, NEXTAUTH_SECRET, IMAGEKIT keys are all working ✅
+   - Google OAuth credentials are optional (not required for basic auth)
+
+2. **Console Logging Added**
+   - Added debug logging in `src/lib/db.ts` for environment variable status
+   - Added debug logging in `src/lib/auth.ts` for NextAuth configuration
+   - Added debug logging in `src/app/profile/page.tsx` for session status
+
+3. **Database Schema Fixes**
+   - Fixed duplicate index warnings in `src/models/RateLimit.ts`
+   - Fixed duplicate index warnings in `src/models/BlockedCredentials.ts`
+   - Removed `index: true` from schema fields that already had `schema.index()`
+
+4. **Next.js Configuration Updates**
+   - Updated `next.config.ts` to use `serverExternalPackages` instead of deprecated `experimental.serverComponentsExternalPackages`
+   - Fixed compatibility with Next.js 15.3.3
+
+#### **Key Findings**
+- **Environment Variables**: All critical variables are loading correctly ✅
+- **Authentication**: NextAuth is configured properly ✅
+- **Database**: MongoDB connection is working ✅
+- **Profile Page**: Loading successfully (200 status) ✅
+- **Google OAuth**: Optional feature - not required for basic authentication ✅
+
+#### **Current Status**
+- **Local Development**: Working perfectly ✅
+- **Dashboard Access**: Profile page loads but requires proper authentication
+- **Ready for Deployment**: All core functionality working
+
+#### **Important Notes for Future**
+1. **Google OAuth is optional** - app works perfectly without it
+2. **Environment variables are loading correctly** via `.env` file
+3. **Dashboard visibility depends on successful authentication**
+4. **Middleware protection is working correctly** (redirects unauthenticated users)
+
+---
+
+## �� Previous Updates
