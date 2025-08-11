@@ -30,7 +30,7 @@ export default function AdminSettingsPage() {
     enableNotifications: true,
     smtpHost: 'smtp.gmail.com',
     smtpPort: '587',
-    smtpUser: 'admin@captioncraft.com',
+          smtpUser: 'ai.captioncraft@outlook.com',
     backupFrequency: 'daily',
     retentionDays: '30'
   });

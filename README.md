@@ -21,16 +21,17 @@
 
 ## 🌟 What Makes CaptionCraft Special?
 
-CaptionCraft isn't just another caption generator – it's your **AI-powered creative partner** that actually *sees* and *understands* your images to create contextually perfect captions.
+CaptionCraft isn't just another caption generator – it's your **AI-powered creative partner** that actually *sees* and *understands* your images to create contextually perfect captions with maximum variety.
 
 ### 🎯 **Key Differentiators:**
 - **🔍 Advanced Image Analysis**: AI analyzes colors, objects, people, and scenes
-- **🎭 Mood-Driven Generation**: 16 different moods for perfect tone matching
-- **🛡️ Smart Rate Limiting**: 3 free generations, 10 for registered users
-- **🔐 Abuse Prevention**: Advanced security with credential blocking
+- **🎭 Mood-Driven Generation**: 21 different moods for perfect tone matching
+- **🔄 Maximum Caption Variety**: 3 completely different caption styles every time
+- **🛡️ Smart Rate Limiting**: 3 free generations, 25 for registered users
+- **🔐 Advanced Admin Security**: JWT-based production-ready admin system
 - **🗑️ Auto Cleanup**: Automatic ImageKit storage management
 - **📱 Fully Responsive**: Perfect experience on all devices
-- **⚡ Optimized Performance**: Streamlined deletion process and database optimization
+- **⚡ Optimized Performance**: Streamlined processes and database optimization
 - **🛡️ Robust Error Handling**: Graceful fallback for all failure scenarios
 
 ---
@@ -38,36 +39,55 @@ CaptionCraft isn't just another caption generator – it's your **AI-powered cre
 ## 🚀 **Live Features Showcase**
 
 ### 🎨 **Screenshot Gallery**
-> *Add your screenshots here to showcase the beautiful UI*
+> *Screenshots will be added to the `/screenshots` folder*
 
-| Feature | Screenshot Placeholder |
-|---------|----------------------|
-| **Homepage with Rate Limiting** | `[Add homepage screenshot showing quota display]` |
-| **Profile Management** | `[Add profile page with Cursor AI default]` |
-| **Caption Generation** | `[Add generation interface screenshot]` |
-| **Rate Limit Display** | `[Add quota visualization screenshot]` |
+| Feature | Screenshot | Description |
+|---------|------------|-------------|
+| **🏠 Homepage & Main Interface** | `screenshots/01-homepage-main.png` | Main caption generation interface with image upload |
+| **📸 Image Upload & Preview** | `screenshots/02-image-upload.png` | Drag & drop image upload with preview |
+| **🎭 Mood Selection** | `screenshots/03-mood-selection.png` | 21 different mood options for caption generation |
+| **✨ Caption Generation** | `screenshots/04-caption-generation.png` | AI-generated captions with variety |
+| **🔄 Regenerate for Variety** | `screenshots/05-regenerate-variety.png` | Get completely different caption styles |
+| **👤 User Authentication** | `screenshots/06-user-auth.png` | Login, registration, and profile management |
+| **📊 Rate Limiting & Quotas** | `screenshots/07-rate-limiting.png` | Quota display and rate limiting information |
+| **🔐 Admin Dashboard** | `screenshots/08-admin-dashboard.png` | Super admin system with user management |
+| **⚙️ Admin Setup** | `screenshots/09-admin-setup.png` | Secure JWT-based admin setup process |
+| **📱 Mobile Responsiveness** | `screenshots/10-mobile-responsive.png` | Mobile-first design across all devices |
+| **🎨 Dark Mode Theme** | `screenshots/11-dark-mode.png` | Beautiful dark theme with proper contrast |
+| **📧 Password Reset System** | `screenshots/12-password-reset.png` | Enhanced password reset with email integration |
+| **🚫 Unauthorized Access** | `screenshots/13-unauthorized.png` | Creative unauthorized access page |
 
 ---
 
-## 🆕 **Recent Improvements & Optimizations**
+## 🆕 **Latest Features & Enhancements (v2.1)**
 
-### **🔧 Image Deletion Process Optimization**
-- **Streamlined UX**: Single delete button per caption (no more confusion)
-- **Enhanced Error Handling**: Graceful fallback when ImageKit deletion fails
-- **Robust Recovery**: Frontend handles failures without breaking user experience
-- **Better Feedback**: Clear status messages and loading states
+### **🎯 Enhanced AI Caption Engine - Maximum Variety**
+- **🔄 Smart Diversity System**: AI automatically detects and regenerates similar captions
+- **🎲 Randomization Seeds**: Each generation gets unique timestamp and random seed
+- **🎭 Mood-Specific Instructions**: 21 moods with tailored language guidelines
+- **🚫 Anti-Duplication Rules**: Prevents similar structures, phrases, and emojis
+- **🎨 Creative Variations**: Different sentence lengths, punctuation, and emoji placement
+- **🔄 Regenerate Button**: Get completely different caption styles for the same image
 
-### **⚡ Database Performance Enhancements**
-- **Fixed MongoDB Warnings**: Resolved duplicate schema index issues
-- **Optimized Builds**: 48% faster build times (21s → 11s)
-- **Cleaner Schema**: Removed redundant index definitions
-- **Better Scalability**: Optimized database structure for future growth
+### **🔐 Production-Ready Admin System**
+- **🔑 JWT-Based Security**: Secure token system for production deployment
+- **📧 Email Integration**: Tokens sent via Brevo SMTP to authorized emails
+- **🛡️ Separate Admin Database**: Dedicated AdminUser model for security
+- **👑 Super Admin Role**: Full system access and user management
+- **🚫 Unauthorized Access Handling**: Creative security pages instead of 404s
 
-### **📱 Complete Mobile-First Responsiveness**
-- **Mobile-Optimized**: Perfect experience across all device sizes
-- **Touch-Friendly**: Proper touch targets and mobile interactions
-- **Responsive Admin**: Mobile-first admin panel design
-- **Progressive Enhancement**: Features scale appropriately across breakpoints
+### **📧 Enhanced Email System**
+- **📬 Brevo SMTP Integration**: Professional email delivery service
+- **🔐 Secure Token Delivery**: JWT tokens sent to authorized admin emails
+- **📱 Spam Folder Instructions**: Clear guidance for email delivery
+- **⚡ Automated Workflows**: Password reset and admin setup automation
+
+### **🎨 UI/UX Improvements**
+- **📱 Mobile-First Design**: Perfect experience across all device sizes
+- **🌙 Dark Mode Optimization**: Fixed contrast issues and theme consistency
+- **✨ Loading States**: Enhanced loading indicators and user feedback
+- **🎯 Form Optimization**: Streamlined forms with better validation
+- **💡 User Guidance**: Helpful tips and instructions throughout the interface
 
 ---
 
@@ -113,7 +133,7 @@ NEXTAUTH_SECRET="your-super-secret-key-here"
 NEXTAUTH_URL="http://localhost:9002"
 
 # AI Integration (REQUIRED)
-GOOGLE_GENAI_API_KEY="your-gemini-api-key"
+GOOGLE_API_KEY="your-gemini-api-key"
 
 # Image Storage (REQUIRED)
 IMAGEKIT_PUBLIC_KEY="your-imagekit-public-key"
@@ -121,15 +141,14 @@ IMAGEKIT_PRIVATE_KEY="your-imagekit-private-key"
 IMAGEKIT_URL_ENDPOINT="https://ik.imagekit.io/your-endpoint"
 
 # Admin Setup Security (CRITICAL)
-ALLOW_ADMIN_SETUP=false
-ADMIN_SETUP_TOKEN="your-secure-setup-token"
+JWT_SECRET="your-super-secure-jwt-secret-key"
 
-# Email Service (Optional but Recommended)
-SMTP_HOST="smtp.gmail.com"
+# Email Service (Required for Admin Setup)
+SMTP_HOST="smtp-relay.sendinblue.com"
 SMTP_PORT="587"
-SMTP_USER="your-email@gmail.com"
-SMTP_PASS="your-app-password"
-SMTP_FROM="your-email@gmail.com"
+SMTP_USER="your-brevo-username"
+SMTP_PASS="your-brevo-password"
+SMTP_FROM="your-from-email@domain.com"
 ```
 
 **Generate Secure Secrets:**
@@ -137,15 +156,77 @@ SMTP_FROM="your-email@gmail.com"
 # Generate NextAuth secret
 openssl rand -hex 32
 
-# Generate admin setup token
-npm run generate-token
+# Generate JWT secret
+node -e "console.log('JWT_SECRET=' + require('crypto').randomBytes(64).toString('hex'))"
 ```
 
-### 3. **Launch**
+### 4. **Launch**
 ```bash
 npm run dev
 # Open http://localhost:9002
 ```
+
+---
+
+## 🔐 **Admin System Setup**
+
+### **🚀 Production-Ready JWT System**
+1. **Set JWT_SECRET** in your environment variables
+2. **Deploy to Vercel** with proper environment variables
+3. **Visit `/setup`** page in production
+4. **Click "Get Token"** button (restricted to authorized emails)
+5. **Token sent via email** to `sunnyshinde2601@gmail.com`
+6. **Verify token** and create admin account
+7. **Access admin dashboard** at `/admin/dashboard`
+
+### **🔑 Local Development Setup**
+```bash
+# Generate production JWT token
+npm run generate-production-jwt
+
+# Setup super admin
+npm run setup-super-admin
+
+# Test super admin
+npm run test-super-admin
+```
+
+---
+
+## 🎯 **AI Caption Generation Features**
+
+### **🔄 Maximum Caption Variety**
+- **3 Different Styles**: Direct, Emotional, and Trendy approaches
+- **Smart Diversity Check**: AI automatically regenerates similar captions
+- **Mood-Specific Language**: Tailored instructions for each of 21 moods
+- **Randomization Seeds**: Unique generation every time
+- **Anti-Duplication**: Prevents similar structures and patterns
+
+### **🎭 Available Moods (21 Options)**
+- **😊 Happy / Cheerful** - Upbeat, positive vibes
+- **😍 Romantic / Flirty** - Sweet, intimate language
+- **😎 Cool / Confident** - Bold, powerful statements
+- **😜 Fun / Playful** - Humorous, casual tone
+- **🤔 Thoughtful / Deep** - Reflective, philosophical
+- **😌 Calm / Peaceful** - Zen, mindfulness vibes
+- **😢 Sad / Emotional** - Vulnerable, relatable feelings
+- **😏 Sassy / Savage** - Attitude, bold confidence
+- **😲 Surprised / Excited** - Energetic, hype language
+- **🌅 Aesthetic / Artsy** - Artistic, visual descriptions
+- **👔 Formal / Professional** - Business, polished tone
+- **📈 Business / Corporate** - Success, achievement focus
+- **📝 Informative / Educational** - Fact-based, learning
+- **🎩 Elegant / Sophisticated** - Luxury, refined language
+- **🏖 Casual / Chill** - Relaxed, comfortable vibes
+- **🔥 Motivational / Inspirational** - Inspiring, power words
+- **🎉 Celebratory / Festive** - Party, celebration vibes
+- **⚡ Bold / Daring** - Daring, confident tone
+- **🌍 Travel / Adventure** - Exploration, wanderlust
+- **🍔 Foodie / Culinary** - Delicious, appetite appeal
+- **🐾 Pet / Cute** - Adorable, lovable language
+- **🎵 Musical / Rhythmic** - Beat, lyrical style
+
+---
 
 ## 🔒 **Security & Privacy**
 
@@ -157,31 +238,11 @@ npm run dev
 
 ### **Security Features:**
 - **Rate Limiting**: Prevents abuse and brute force attacks
-- **Credential Blocking**: Advanced abuse prevention system
-- **Session Security**: JWT tokens with configurable expiry
+- **JWT-Based Admin**: Secure token system for production
+- **Session Security**: NextAuth.js with configurable expiry
 - **IP Monitoring**: Suspicious activity detection and blocking
 - **Input Validation**: Comprehensive request validation and sanitization
-
----
-
-## 🔒 **Admin Setup Security**
-
-**⚠️ CRITICAL: Admin setup is now secured by default!**
-
-### **First-Time Setup (Development)**
-1. **Generate a secure token**: `npm run generate-token`
-2. **Copy the token** to your `.env` file: `ADMIN_SETUP_TOKEN=your-token-here`
-3. **Enable setup**: Set `ALLOW_ADMIN_SETUP=true` in `.env`
-4. **Access setup page**: Go to `/setup` and enter your token
-5. **Complete setup**: Initialize system and create admin user
-6. **Disable setup**: Set `ALLOW_ADMIN_SETUP=false` in `.env`
-
-### **Production Security**
-- **NEVER** leave `ALLOW_ADMIN_SETUP=true` in production
-- **Use strong tokens** (generated by the script)
-- **Restrict IPs** with `TRUSTED_IPS` if needed
-- **Monitor setup attempts** in logs
-- **Rotate tokens** regularly
+- **Separate Admin Database**: Isolated admin user management
 
 ---
 
@@ -194,406 +255,76 @@ graph TB
     A[User Visits Homepage] --> B[Rate Limit Check]
     B --> C{Authenticated?}
     C -->|No| D[3 Free Generations]
-    C -->|Yes| E[10 Daily Generations]
+    C -->|Yes| E[25 Monthly Generations]
     
     D --> F[Upload Image]
     E --> F
-    F --> G[ImageKit Processing]
-    G --> H[AI Analysis]
-    H --> I[Google Gemini 2.0]
-    I --> J[Generate 3 Captions]
-    J --> K[Save to MongoDB]
-    K --> L[Display Results]
-    
-    L --> M[User Actions]
-    M --> N[Copy Captions]
-    M --> O[Delete Captions]
-    O --> P[ImageKit Cleanup]
-    
-    Q[Account Deletion] --> R[Block Credentials]
-    R --> S[24h+ Cooling Period]
+    F --> G[AI Image Analysis]
+    G --> H[Caption Generation]
+    H --> I[Diversity Check]
+    I -->|Similar| J[Regenerate]
+    I -->|Diverse| K[Display Captions]
+    J --> H
+    K --> L[Save to Database]
 ```
 
-### 🔄 **Data Flow Architecture**
+### 🔐 **Admin System Flow**
 
 ```mermaid
-sequenceDiagram
-    participant U as User
-    participant F as Frontend
-    participant API as API Routes
-    participant AI as Genkit AI
-    participant DB as MongoDB
-    participant IK as ImageKit
-    
-    U->>F: Upload Image + Mood
-    F->>API: POST /api/generate-captions
-    API->>API: Check Rate Limits
-    API->>IK: Upload Image
-    IK-->>API: Image URL
-    API->>AI: Generate Captions
-    AI->>AI: Analyze Image + Mood
-    AI-->>API: 3 Captions Array
-    API->>DB: Save Caption Set
-    DB-->>API: Success
-    API-->>F: Return Captions
-    F-->>U: Display Results
-    
-    Note over U,IK: Cleanup on Delete
-    U->>F: Delete Caption
-    F->>API: DELETE /api/posts/[id]
-    API->>IK: Delete Image
-    API->>DB: Delete Record
+graph TB
+    A[Admin Setup Request] --> B[Email Verification]
+    B --> C[JWT Token Generation]
+    C --> D[Token Sent via Email]
+    D --> E[Token Verification]
+    E --> F[Admin Account Creation]
+    F --> G[Access Admin Dashboard]
+    G --> H[User Management]
+    G --> I[System Monitoring]
 ```
 
 ---
 
-## 📁 **Project Structure Deep Dive**
+## 📱 **Responsive Design Features**
 
-### 🌳 **Directory Tree**
-```
-captioncraft/
-├── 📂 src/
-│   ├── 🤖 ai/                          # AI Integration Layer
-│   │   ├── flows/
-│   │   │   └── generate-caption.ts     # Core AI logic with rate limiting
-│   │   ├── genkit.ts                   # Google Gemini configuration
-│   │   └── dev.ts                      # Development server
-│   │
-│   ├── 🌐 app/                         # Next.js App Router
-│   │   ├── api/                        # Backend API Routes
-│   │   │   ├── auth/                   # Authentication System
-│   │   │   │   ├── [...nextauth]/route.ts    # NextAuth handler
-│   │   │   │   ├── register/route.ts          # User registration
-│   │   │   │   ├── forgot-password/route.ts   # Password reset
-│   │   │   │   └── reset-password/route.ts    # Password update
-│   │   │   ├── posts/
-│   │   │   │   ├── route.ts            # Fetch user captions
-│   │   │   │   └── [id]/route.ts       # Delete with ImageKit cleanup
-│   │   │   ├── user/
-│   │   │   │   ├── route.ts            # User profile data
-│   │   │   │   ├── profile-image/route.ts     # Profile image management
-│   │   │   │   └── delete/route.ts            # Account deletion + blocking
-│   │   │   ├── upload/route.ts         # ImageKit integration
-│   │   │   ├── generate-captions/route.ts     # Rate-limited AI endpoint
-│   │   │   └── rate-limit-info/route.ts       # Quota information
-│   │   │
-│   │   ├── 📄 (pages)/                 # Application Pages
-│   │   │   ├── page.tsx                # Homepage with generator
-│   │   │   ├── profile/page.tsx        # User dashboard
-│   │   │   ├── features/page.tsx       # Feature showcase
-│   │   │   ├── about/page.tsx          # About page
-│   │   │   ├── contact/page.tsx        # Contact form
-│   │   │   ├── pricing/page.tsx        # Pricing tiers
-│   │   │   ├── reset-password/page.tsx # Password reset UI
-│   │   │   └── [other-pages]/          # Additional pages
-│   │   │
-│   │   ├── globals.css                 # Global styles + scrollbar hiding
-│   │   └── layout.tsx                  # Root layout with providers
-│   │
-│   ├── 🧩 components/                  # React Components
-│   │   ├── ui/                         # ShadCN UI Components
-│   │   │   ├── button.tsx, card.tsx, etc.
-│   │   │   └── ...                     # Complete UI kit
-│   │   ├── caption-generator.tsx       # Main generation interface
-│   │   ├── rate-limit-display.tsx      # Quota visualization
-│   │   ├── auth-form.tsx              # Login/register forms
-│   │   ├── auth-modal.tsx             # Authentication modal
-│   │   ├── server-header.tsx          # Navigation header
-│   │   ├── footer.tsx                 # Site footer
-│   │   └── providers.tsx              # Context providers
-│   │
-│   ├── 🔧 lib/                        # Core Utilities
-│   │   ├── auth.ts                    # NextAuth configuration
-│   │   ├── db.ts                      # MongoDB connection
-│   │   ├── mail.ts                    # Email service
-│   │   ├── rate-limit.ts              # Rate limiting system
-│   │   ├── imagekit-utils.ts          # Image cleanup utilities
-│   │   └── utils.ts                   # Helper functions
-│   │
-│   ├── 📊 models/                     # Database Schemas
-│   │   ├── User.ts                    # User account structure
-│   │   ├── Post.ts                    # Caption storage (array format)
-│   │   ├── Contact.ts                 # Contact form submissions
-│   │   ├── RateLimit.ts               # Usage tracking
-│   │   ├── BlockedCredentials.ts      # Abuse prevention
-│   │   └── DeletedProfile.ts          # Account deletion audit
-│   │
-│   └── 🎯 context/                    # React Context
-│       └── AuthModalContext.tsx       # Global auth state
-│
-├── 📋 Configuration Files
-│   ├── next.config.ts                 # Next.js configuration
-│   ├── tailwind.config.ts             # Tailwind CSS setup
-│   ├── components.json                # ShadCN component config
-│   ├── tsconfig.json                  # TypeScript configuration
-│   └── package.json                   # Dependencies & scripts
-│
-└── 📚 Documentation
-    ├── README.md                      # This comprehensive guide
-    ├── new_features.md                # Feature changelog
-    ├── help.md                        # User documentation
-    └── flow.md                        # Technical flow diagrams
-```
+### **Mobile-First Approach:**
+- **Touch-Friendly Interface**: Proper touch targets and gestures
+- **Responsive Grid**: Adapts to all screen sizes
+- **Progressive Enhancement**: Features scale appropriately
+- **Mobile-Optimized Forms**: Easy input on small screens
 
-### 🔍 **File Responsibilities Matrix**
-
-| File | Primary Responsibility | Key Features |
-|------|----------------------|--------------|
-| `ai/flows/generate-caption.ts` | AI caption generation | Rate limiting, image analysis, database storage |
-| `app/api/generate-captions/route.ts` | API endpoint for captions | Request validation, IP tracking |
-| `lib/rate-limit.ts` | Usage quotas & abuse prevention | Database persistence, credential blocking |
-| `components/rate-limit-display.tsx` | User quota visualization | Real-time updates, progress bars |
-| `lib/imagekit-utils.ts` | Image storage management | Auto cleanup, batch operations |
-| `app/api/user/delete/route.ts` | Account deletion | Credential blocking, audit logging |
-| `models/Post.ts` | Caption storage schema | Array format for efficiency |
-| `lib/auth.ts` | Authentication system | 30-day sessions, passive validation |
+### **Cross-Device Compatibility:**
+- **Desktop**: Full-featured experience with advanced controls
+- **Tablet**: Optimized layout for medium screens
+- **Mobile**: Streamlined interface for small screens
+- **All Devices**: Consistent functionality across platforms
 
 ---
 
-## 🎯 **Advanced Features Breakdown**
+## 🚀 **Deployment & Production**
 
-### 🛡️ **Smart Rate Limiting System**
-```typescript
-// Anonymous Users: 3 generations/day
-// Authenticated Users: 10 generations/day
-// Database-persistent with automatic cleanup
-```
+### **Vercel Deployment:**
+1. **Connect Repository** to Vercel
+2. **Set Environment Variables** in Vercel dashboard
+3. **Deploy** with automatic builds
+4. **Configure Custom Domain** (optional)
+5. **Monitor Performance** with Vercel analytics
 
-**Key Components:**
-- **Database Tracking**: MongoDB with TTL indexes
-- **IP + User Identification**: Comprehensive tracking
-- **Visual Feedback**: Real-time quota display
-- **Graceful Degradation**: Fallback to in-memory storage
-
-### 🚫 **Advanced Abuse Prevention**
-```typescript
-// Account deletion → 24h credential block (escalating)
-// Rate limit bypass detection
-// Suspicious activity monitoring
-```
-
-**Security Layers:**
-- **Credential Blocking**: Prevent immediate re-registration
-- **Escalating Timeouts**: 24h → 48h → 72h → 7 days max
-- **Audit Logging**: Complete activity tracking
-- **IP Monitoring**: Cross-user pattern detection
-
-### 🗑️ **Automatic Resource Cleanup**
-```typescript
-// ImageKit integration with automatic cleanup
-// Caption deletion → Image deletion
-// Profile updates → Old image cleanup
-```
-
-**Cleanup Triggers:**
-- Caption deletion
-- Profile image updates
-- Account deletion
-- Batch cleanup operations
-
-### 📱 **Responsive Design System**
-```css
-/* Global scrollbar hiding */
-/* Mobile-first responsive utilities */
-/* Touch-friendly interfaces */
-```
-
-**Design Features:**
-- **Hidden Scrollbars**: Clean aesthetic across browsers
-- **Responsive Grid**: Adaptive layouts for all devices
-- **Touch Optimization**: 44px minimum touch targets
-- **Progressive Enhancement**: Works without JavaScript
-
----
-
-## 🔧 **Technical Implementation**
-
-### 🤖 **AI Integration Architecture**
-```typescript
-// Google Gemini 2.0 Flash via Genkit
-// Image analysis + contextual understanding
-// Mood-driven prompt engineering
-```
-
-**AI Pipeline:**
-1. **Image Upload** → ImageKit processing
-2. **Mood Selection** → Prompt customization  
-3. **AI Analysis** → Visual element detection
-4. **Caption Generation** → 3 unique variations
-5. **Database Storage** → Single document with array
-
-### 🔐 **Authentication & Security**
-```typescript
-// NextAuth.js v5 with JWT strategy
-// 30-day sessions with passive validation
-// Comprehensive session management
-```
-
-**Security Features:**
-- **JWT Tokens**: Secure, stateless authentication
-- **Session Persistence**: 30-day duration like major platforms
-- **Passive Validation**: Minimal server calls
-- **Cookie Security**: HttpOnly, SameSite, Secure flags
-
-### 📊 **Database Design**
-```typescript
-// Optimized MongoDB schemas
-// Efficient caption storage (array format)
-// Automatic indexing and cleanup
-```
-
-**Schema Optimizations:**
-- **Caption Arrays**: Single document vs. multiple documents
-- **TTL Indexes**: Automatic data expiration
-- **Compound Indexes**: Optimized query performance
-- **Audit Trails**: Complete activity logging
-
----
-
-## 🚀 **Deployment Guide**
-
-### ☁️ **Vercel Deployment (Recommended)**
-
-1. **Repository Setup**
-```bash
-git add .
-git commit -m "Production ready"
-git push origin main
-```
-
-2. **Vercel Configuration**
-```bash
-# Install Vercel CLI
-npm i -g vercel
-
-# Deploy
-vercel --prod
-```
-
-3. **Environment Variables**
+### **Environment Variables for Production:**
 ```env
-# Production URLs
-NEXTAUTH_URL=https://your-domain.vercel.app
-NEXT_PUBLIC_APP_URL=https://your-domain.vercel.app
+# Required for Production
+JWT_SECRET=your-super-secure-jwt-secret-key
+MONGODB_URI=your-production-mongodb-uri
+NEXTAUTH_SECRET=your-production-nextauth-secret
+NEXTAUTH_URL=https://yourdomain.vercel.app
+GOOGLE_API_KEY=your-production-gemini-api-key
 
-# Database & Services
-MONGODB_URI=mongodb+srv://...
-GOOGLE_GENAI_API_KEY=...
-IMAGEKIT_PUBLIC_KEY=...
-IMAGEKIT_PRIVATE_KEY=...
-IMAGEKIT_URL_ENDPOINT=...
-
-# Email (Optional)
-SMTP_HOST=smtp.gmail.com
-SMTP_USER=...
-SMTP_PASSWORD=...
+# Email Service (Brevo SMTP)
+SMTP_HOST=smtp-relay.sendinblue.com
+SMTP_PORT=587
+SMTP_USER=your-brevo-username
+SMTP_PASS=your-brevo-password
+SMTP_FROM=your-from-email@domain.com
 ```
-
-### 🌐 **Alternative Platforms**
-
-| Platform | Best For | Setup Complexity |
-|----------|----------|------------------|
-| **Vercel** | Next.js apps | ⭐ Easy |
-| **Netlify** | Static sites | ⭐⭐ Medium |
-| **Railway** | Full-stack apps | ⭐⭐ Medium |
-| **DigitalOcean** | Custom control | ⭐⭐⭐ Advanced |
-
----
-
-## 🛠️ **Development Workflow**
-
-### 🔧 **Available Scripts**
-```bash
-npm run dev          # Start development server
-npm run build        # Production build
-npm run start        # Production server
-npm run lint         # ESLint checking
-npm run type-check   # TypeScript validation
-```
-
-### 🧪 **Testing Strategy**
-```bash
-# Rate Limiting Tests
-# 1. Generate 3 captions as anonymous
-# 2. Verify limit reached message
-# 3. Register account
-# 4. Verify 10 generation quota
-
-# Abuse Prevention Tests  
-# 1. Delete account
-# 2. Attempt immediate re-registration
-# 3. Verify blocking message
-
-# ImageKit Cleanup Tests
-# 1. Upload profile image
-# 2. Update with new image  
-# 3. Verify old image deletion
-```
-
-### 🐛 **Common Issues & Solutions**
-
-| Issue | Solution |
-|-------|----------|
-| Rate limit not working | Check MongoDB connection |
-| Images not deleting | Verify ImageKit credentials |
-| Auth session issues | Clear browser cache |
-| Email not sending | Check SMTP configuration |
-
----
-
-## 🎨 **Customization Guide**
-
-### 🎭 **Adding New Moods**
-```typescript
-// In src/components/caption-generator.tsx
-const moods = [
-  "🎉 Celebratory / Festive",
-  "🌟 Your Custom Mood",
-  // Add your moods here
-];
-```
-
-### 🎨 **Theming System**
-```css
-/* In src/app/globals.css */
-:root {
-  --primary: your-brand-color;
-  --secondary: your-accent-color;
-  /* Customize color scheme */
-}
-```
-
-### 📊 **Rate Limit Configuration**
-```typescript
-// In src/lib/rate-limit.ts
-export const RATE_LIMITS = {
-  ANONYMOUS: {
-    MAX_GENERATIONS: 5,    // Increase free tier
-    WINDOW_HOURS: 24,
-  },
-  AUTHENTICATED: {
-    MAX_GENERATIONS: 25,   // Increase paid tier
-    WINDOW_HOURS: 24,
-  },
-};
-```
-
----
-
-## 📈 **Performance Optimizations**
-
-### ⚡ **Built-in Optimizations**
-- **Image Lazy Loading**: Faster initial page loads
-- **Code Splitting**: Reduced JavaScript bundles
-- **Server Components**: Optimal rendering strategy
-- **Static Generation**: Pre-built pages where possible
-- **Edge Functions**: Global distribution
-
-### 📊 **Monitoring & Analytics**
-- **Rate Limit Tracking**: Usage pattern analysis
-- **Error Logging**: Comprehensive error tracking
-- **Performance Metrics**: Core Web Vitals monitoring
-- **User Analytics**: Engagement tracking
 
 ---
 
@@ -642,6 +373,8 @@ export const RATE_LIMITS = {
 - **docs/new_features.md** - Feature changelog & updates
 - **docs/blueprint.md** - Design guidelines & specifications
 - **VERCEL_DEPLOYMENT_GUIDE.md** - Production deployment guide
+- **docs/PRODUCTION_TOKEN_SYSTEM.md** - JWT-based admin system
+- **docs/SUPER_ADMIN_SYSTEM.md** - Super admin capabilities
 
 ### **📋 Quick Reference:**
 - **Environment Variables**: `docs/env.example`
@@ -657,7 +390,7 @@ export const RATE_LIMITS = {
 - 📖 **Documentation**: Check the comprehensive docs above
 - 🐛 **Bug Reports**: [GitHub Issues](https://github.com/yourusername/captioncraft/issues)
 - 💬 **Discussions**: [GitHub Discussions](https://github.com/yourusername/captioncraft/discussions)
-- 📧 **Direct Support**: support@captioncraft.com
+- 📧 **Direct Support**: ai.captioncraft@outlook.com
 
 ### 🌍 **Community**
 - 🐦 **Twitter**: [@CaptionCraft](https://twitter.com/captioncraft)
@@ -686,6 +419,7 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 - **Vercel**: For seamless deployment platform  
 - **MongoDB**: For reliable database infrastructure
 - **ImageKit**: For powerful image processing
+- **Brevo**: For professional email delivery
 - **Open Source Community**: For incredible tools
 
 ### 🏆 **Built With Excellence**
@@ -694,6 +428,8 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 - **Tailwind CSS**: Utility-first styling
 - **ShadCN/UI**: Beautiful component library
 - **MongoDB**: Flexible database solution
+- **NextAuth.js**: Secure authentication
+- **Google Gemini AI**: Advanced image analysis
 
 ---
 
@@ -711,6 +447,6 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 *CaptionCraft - Where AI meets creativity*
 
-**Last Updated**: January 2025 • **Version**: 2.0 • **Status**: Production Ready
+**Last Updated**: January 2025 • **Version**: 2.1 • **Status**: Production Ready
 
 </div>

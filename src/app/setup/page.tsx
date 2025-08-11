@@ -6,7 +6,7 @@ import { signIn, useSession, signOut } from 'next-auth/react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { FixedHeightMessage } from '@/components/ui/inline-message';
 import { Loader2, Shield, UserPlus, LogIn, Key, CheckCircle, AlertCircle, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 
 export default function AdminSetup() {
@@ -177,6 +177,7 @@ export default function AdminSetup() {
    const handleGetToken = async () => {
      setIsGettingToken(true);
      setError('');
+     setSuccess(''); // Clear any previous success message
      setTokenRequestMessage('');
      
      try {
@@ -192,7 +193,7 @@ export default function AdminSetup() {
 
        if (response.ok && data.success) {
          setTokenRequestMessage('✅ Token generated and sent to admin email. Please check your email and paste the token below.');
-         setSuccess('Token request successful! Check your email for the setup token.');
+         setSuccess(''); // Clear any previous success message
        } else {
          setError(data.message || 'Failed to generate token. Please try again.');
          setTokenRequestMessage('❌ Token generation failed. Please try again or contact system administrator.');
@@ -403,19 +404,12 @@ export default function AdminSetup() {
         {/* Main form card - Mobile First sizing */}
         <Card className="w-full bg-white/95 backdrop-blur-sm border-0 shadow-2xl">
           <CardContent className="p-4 sm:p-6 space-y-4">
-            {error && (
-              <Alert variant="destructive" className="border-red-300 bg-red-50">
-                <AlertCircle className="h-4 w-4 text-red-600" />
-                <AlertDescription className="text-red-800 font-medium text-sm">{error}</AlertDescription>
-              </Alert>
-            )}
-
-            {success && (
-              <Alert className="border-green-300 bg-green-50">
-                <CheckCircle className="h-4 w-4 text-green-600" />
-                <AlertDescription className="text-green-800 font-medium text-sm">{success}</AlertDescription>
-              </Alert>
-            )}
+            {/* Fixed height messages to prevent form expansion */}
+            <FixedHeightMessage
+              type={error ? 'error' : success ? 'success' : 'info'}
+              message={error || success || ''}
+              height="min-h-[60px]"
+            />
 
             {step === 'token' && (
               <div className="space-y-4">
@@ -451,11 +445,12 @@ export default function AdminSetup() {
                       </>
                     )}
                   </Button>
-                  {tokenRequestMessage && (
-                    <div className="text-xs text-gray-600 bg-gray-50 p-2 rounded border">
-                      {tokenRequestMessage}
-                    </div>
-                  )}
+                  {/* Fixed height token message to prevent form expansion */}
+                  <FixedHeightMessage
+                    type="info"
+                    message={tokenRequestMessage}
+                    height="min-h-[40px]"
+                  />
                 </div>
                 
                 <div>

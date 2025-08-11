@@ -31,7 +31,9 @@ import { CaptionCard } from "./caption-card";
 import { Textarea } from "./ui/textarea";
 
 const formSchema = z.object({
-  mood: z.string().optional(), // Handle validation manually
+  mood: z.string({
+    required_error: "Please select a mood",
+  }).min(1, "Please select a mood"),
   description: z.string().optional(),
   image: z.any().optional(), // Handle validation manually
 });
@@ -63,11 +65,14 @@ export function CaptionGenerator() {
       mood: "",
       description: "",
     },
+    mode: "onChange", // Add this to enable real-time validation
   });
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log('📸 Image upload triggered:', e.target.files);
     const file = e.target.files?.[0];
     if (file) {
+      console.log('✅ File selected:', file.name, file.size, file.type);
       setUploadedFile(file);
       // Clear image-related error when user uploads an image
       if (error === "Please upload an image to generate captions.") {
@@ -76,25 +81,35 @@ export function CaptionGenerator() {
       const reader = new FileReader();
       reader.onloadend = () => {
         const result = reader.result as string;
+        console.log('🖼️ Image preview generated');
         setImagePreview(result);
       };
       reader.readAsDataURL(file);
+    } else {
+      console.log('❌ No file selected');
     }
   };
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    console.log('🎯 Form submission started:', values);
+    console.log('📸 Uploaded file:', uploadedFile);
+    console.log('🎭 Selected mood:', values.mood);
+    
     // Validate that an image is uploaded
     if (!uploadedFile) {
       setError("Please upload an image to generate captions.");
+      console.log('❌ No image uploaded');
       return;
     }
 
     // Validate that mood is selected
-    if (!values.mood) {
+    if (!values.mood || values.mood.trim() === '') {
       setError("Please select a mood for your caption.");
+      console.log('❌ No mood selected');
       return;
     }
 
+    console.log('✅ Validation passed, starting caption generation...');
     setIsLoading(true);
     setCaptions([]);
     setError('');
@@ -192,7 +207,7 @@ export function CaptionGenerator() {
             total: data.maxGenerations,
             isAuthenticated: data.isAuthenticated
           });
-          console.log('🔄 Quota info updated:', data.remaining, '/', data.maxGenerations);
+          console.log('�� Quota info updated:', data.remaining, '/', data.maxGenerations);
         }
       } catch (error) {
         console.error('Failed to fetch quota info:', error);
@@ -204,7 +219,11 @@ export function CaptionGenerator() {
   return (
     <div className="space-y-6 sm:space-y-8">
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <form 
+          onSubmit={form.handleSubmit(onSubmit)} 
+          className="space-y-6" 
+          onClick={() => console.log('🎯 Form clicked')}
+        >
           {/* Form Layout - Mobile First */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start p-4 sm:p-6 border border-border bg-muted/20 rounded-lg">
             
@@ -230,9 +249,19 @@ export function CaptionGenerator() {
                       )}
                     </div>
                   )}
-                  <input id="file-upload" type="file" className="hidden" accept="image/png, image/jpeg, image/gif" onChange={handleImageChange} />
+                  <input 
+                    id="file-upload" 
+                    type="file" 
+                    className="hidden" 
+                    accept="image/png, image/jpeg, image/gif" 
+                    onChange={handleImageChange}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      console.log('📸 File input clicked');
+                    }}
+                  />
               </label>
-            </div> 
+            </div>
 
             {/* Form Fields - Mobile First */}
             <div className="space-y-4 order-2 lg:order-2">
@@ -242,13 +271,17 @@ export function CaptionGenerator() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-sm sm:text-base">Select a mood (required)</FormLabel>
-                    <Select onValueChange={(value) => {
-                      field.onChange(value);
-                      // Clear mood-related error when user selects a mood
-                      if (error === "Please select a mood for your caption.") {
-                        setError('');
-                      }
-                    }} defaultValue={field.value}>
+                    <Select 
+                      onValueChange={(value) => {
+                        console.log('🎭 Mood selected:', value);
+                        field.onChange(value);
+                        // Clear mood-related error when user selects a mood
+                        if (error === "Please select a mood for your caption.") {
+                          setError('');
+                        }
+                      }} 
+                      value={field.value || ""}
+                    >
                       <FormControl>
                         <SelectTrigger className="bg-background h-12 sm:h-10 text-sm sm:text-base">
                           <SelectValue placeholder="Choose the vibe for your caption..." />
@@ -262,6 +295,10 @@ export function CaptionGenerator() {
                         ))}
                       </SelectContent>
                     </Select>
+                    <FormMessage />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      💡 Each mood generates 3 unique caption styles for maximum variety
+                    </p>
                   </FormItem>
                 )}
               />
@@ -297,11 +334,22 @@ export function CaptionGenerator() {
               )}
               
               {/* Generate Button - Mobile First */}
-              <Button type="submit" disabled={isLoading} size="lg" className="w-full max-w-sm h-12 sm:h-14 font-semibold rounded-lg transition-all duration-300 transform hover:scale-105 active:scale-100 shadow-lg shadow-primary/20 hover:shadow-primary/40 text-base sm:text-lg">
+              <Button 
+                type="submit" 
+                disabled={isLoading} 
+                size="lg" 
+                className="w-full max-w-sm h-12 sm:h-14 font-semibold rounded-lg transition-all duration-300 transform hover:scale-105 active:scale-100 shadow-lg shadow-primary/20 hover:shadow-primary/40 text-base sm:text-lg"
+                onClick={() => {
+                  console.log('🚀 Generate button clicked');
+                  console.log('📝 Form values:', form.getValues());
+                  console.log('📸 Uploaded file state:', uploadedFile);
+                  console.log('🎭 Mood field value:', form.getValues('mood'));
+                }}
+              >
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Generating...
+                    Analyzing Image & Generating...
                   </>
                 ) : (
                   <>
@@ -380,6 +428,8 @@ export function CaptionGenerator() {
                   <CaptionCard key={index} caption={caption} />
                 ))}
           </div>
+          
+
         </div>
       )}
     </div>

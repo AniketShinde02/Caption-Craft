@@ -26,7 +26,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { AlertTriangle, Trash2, UserX, Shield, Info, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { InlineMessage } from '@/components/ui/inline-message';
 import { signOut } from 'next-auth/react';
 import { format } from 'date-fns';
 
@@ -49,7 +49,7 @@ export default function ProfileDeletion({ userEmail }: { userEmail: string }) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [deletePreview, setDeletePreview] = useState<DeletePreview | null>(null);
   const [isDeleted, setIsDeleted] = useState(false);
-  const { toast } = useToast();
+  const [inlineMessage, setInlineMessage] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
 
   const generatePreview = async () => {
     setIsLoadingPreview(true);
@@ -70,17 +70,15 @@ export default function ProfileDeletion({ userEmail }: { userEmail: string }) {
         setIsDeleteDialogOpen(true);
         setIsPreviewDialogOpen(false);
       } else {
-        toast({
-          title: "Preview Error",
-          description: data.message || "Failed to generate deletion preview.",
-          variant: "destructive",
+        setInlineMessage({
+          type: 'error',
+          message: data.message || "Failed to generate deletion preview."
         });
       }
     } catch (error) {
-      toast({
-        title: "Network Error",
-        description: "Failed to generate deletion preview. Please try again.",
-        variant: "destructive",
+      setInlineMessage({
+        type: 'error',
+        message: "Failed to generate deletion preview. Please try again."
       });
     } finally {
       setIsLoadingPreview(false);
@@ -100,9 +98,9 @@ export default function ProfileDeletion({ userEmail }: { userEmail: string }) {
 
       if (response.ok) {
         setIsDeleted(true);
-        toast({
-          title: "Account Deleted",
-          description: "Your account has been successfully deleted. You will be logged out shortly.",
+        setInlineMessage({
+          type: 'success',
+          message: "Your account has been successfully deleted. You will be logged out shortly."
         });
         
         // Wait 3 seconds then sign out
@@ -110,17 +108,15 @@ export default function ProfileDeletion({ userEmail }: { userEmail: string }) {
           signOut({ callbackUrl: '/' });
         }, 3000);
       } else {
-        toast({
-          title: "Deletion Failed",
-          description: data.message || "Failed to delete account. Please try again.",
-          variant: "destructive",
+        setInlineMessage({
+          type: 'error',
+          message: data.message || "Failed to delete account. Please try again."
         });
       }
     } catch (error) {
-      toast({
-        title: "Network Error",
-        description: "Failed to delete account due to a network error. Please try again.",
-        variant: "destructive",
+      setInlineMessage({
+        type: 'error',
+        message: "Failed to delete account due to a network error. Please try again."
       });
     } finally {
       setIsDeleting(false);
@@ -167,6 +163,15 @@ export default function ProfileDeletion({ userEmail }: { userEmail: string }) {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Inline Message Display */}
+        {inlineMessage && (
+          <InlineMessage
+            type={inlineMessage.type}
+            message={inlineMessage.message}
+            onDismiss={() => setInlineMessage(null)}
+          />
+        )}
+        
         <div className="bg-red-50 dark:bg-red-950 p-4 rounded-lg border border-red-200 dark:border-red-800">
           <div className="flex gap-3">
             <Info className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />

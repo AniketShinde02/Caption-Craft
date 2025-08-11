@@ -195,7 +195,7 @@ export async function sendContactConfirmationEmail(data: ContactConfirmationData
       from: `CaptionCraft Support <${from}>`,
       to: data.email,
       subject: '✅ We received your message - CaptionCraft Support',
-      text: `Hi ${data.name}!\n\nThank you for reaching out to CaptionCraft! We've successfully received your message.\n\nYour Message Details:\nSubject: ${data.subject}\nSubmission ID: ${data.submissionId}\n\nWhat happens next?\n• Our team will review your message within 24 hours\n• You'll receive a personalized response from our support team\n• For urgent matters, you can also reach us at support@captioncraft.ai\n\nIn the meantime, feel free to explore CaptionCraft and start creating amazing captions for your social media content!\n\nBest regards,\nThe CaptionCraft Team\n\n---\nCaptionCraft - AI-Powered Caption Generation\n${baseUrl}`,
+      text: `Hi ${data.name}!\n\nThank you for reaching out to CaptionCraft! We've successfully received your message.\n\nYour Message Details:\nSubject: ${data.subject}\nSubmission ID: ${data.submissionId}\n\nWhat happens next?\n• Our team will review your message within 24 hours\n• You'll receive a personalized response from our support team\n• For urgent matters, you can also reach us at ai.captioncraft@outlook.com\n\nIn the meantime, feel free to explore CaptionCraft and start creating amazing captions for your social media content!\n\nBest regards,\nThe CaptionCraft Team\n\n---\nCaptionCraft - AI-Powered Caption Generation\n${baseUrl}`,
       html: `
         <!DOCTYPE html>
         <html lang="en">
@@ -256,7 +256,7 @@ export async function sendContactConfirmationEmail(data: ContactConfirmationData
                 <ul style="margin: 0; padding-left: 20px; color: #1e40af; font-size: 14px; line-height: 1.6;">
                   <li style="margin-bottom: 8px;">Our team will review your message within <strong>24 hours</strong></li>
                   <li style="margin-bottom: 8px;">You'll receive a personalized response from our support team</li>
-                  <li>For urgent matters, you can reach us directly at <strong>support@captioncraft.ai</strong></li>
+                  <li>For urgent matters, you can reach us directly at <strong>ai.captioncraft@outlook.com</strong></li>
                 </ul>
               </div>
               

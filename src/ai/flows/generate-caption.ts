@@ -182,6 +182,9 @@ const generateCaptionsFlow = ai.defineFlow(
       {
         text: `You are an expert social media content creator and image analyst specializing in viral captions for Gen Z audiences.
 
+        🎲 RANDOMIZATION SEED: ${Date.now()}_${Math.random().toString(36).substr(2, 9)}
+        ⏰ GENERATION TIME: ${new Date().toISOString()}
+        
         STEP 1: ANALYZE THE IMAGE
         You have been provided with an image. Analyze its visual content carefully.
         
@@ -203,8 +206,42 @@ const generateCaptionsFlow = ai.defineFlow(
         
         ${input.description ? `Additional context provided: ${input.description}` : ''}
 
-        STEP 3: CREATE CAPTIONS
-        Generate exactly 3 unique, viral-worthy captions that:
+        🎭 MOOD-SPECIFIC ENHANCEMENTS:
+        ${(() => {
+          const moodEnhancements: { [key: string]: string } = {
+            '😊 Happy / Cheerful': 'Use upbeat language, positive vibes, celebration words, exclamation marks, bright emojis',
+            '😍 Romantic / Flirty': 'Use romantic language, heart emojis, sweet phrases, intimate descriptions, love-related hashtags',
+            '😎 Cool / Confident': 'Use confident language, power words, bold statements, strong emojis, attitude',
+            '😜 Fun / Playful': 'Use playful language, humor, puns, fun emojis, casual tone, relatable jokes',
+            '🤔 Thoughtful / Deep': 'Use reflective language, philosophical phrases, meaningful hashtags, introspective tone',
+            '😌 Calm / Peaceful': 'Use peaceful language, zen vibes, calming emojis, soothing descriptions, mindfulness hashtags',
+            '😢 Sad / Emotional': 'Use emotional language, vulnerability, relatable feelings, supportive hashtags, comfort words',
+            '😏 Sassy / Savage': 'Use sassy language, attitude, bold statements, fire emojis, confident hashtags',
+            '😲 Surprised / Excited': 'Use excited language, exclamation marks, surprise words, energetic emojis, hype hashtags',
+            '🌅 Aesthetic / Artsy': 'Use artistic language, visual descriptions, aesthetic hashtags, creative phrases, beauty focus',
+            '👔 Formal / Professional': 'Use professional language, business tone, formal hashtags, polished descriptions',
+            '📈 Business / Corporate': 'Use business language, success focus, professional hashtags, achievement words',
+            '📝 Informative / Educational': 'Use educational language, fact-based descriptions, learning hashtags, informative tone',
+            '🎩 Elegant / Sophisticated': 'Use elegant language, luxury words, sophisticated hashtags, refined descriptions',
+            '🏖 Casual / Chill': 'Use casual language, relaxed tone, chill vibes, comfortable hashtags, laid-back style',
+            '🔥 Motivational / Inspirational': 'Use motivational language, inspiring phrases, power words, motivation hashtags',
+            '🎉 Celebratory / Festive': 'Use celebratory language, party vibes, festive emojis, celebration hashtags',
+            '⚡ Bold / Daring': 'Use bold language, daring phrases, power words, strong hashtags, confident tone',
+            '🌍 Travel / Adventure': 'Use adventure language, travel words, exploration hashtags, wanderlust vibes',
+            '🍔 Foodie / Culinary': 'Use food language, culinary descriptions, food hashtags, delicious words, appetite appeal',
+            '🐾 Pet / Cute': 'Use cute language, adorable descriptions, pet hashtags, sweet phrases, lovable tone',
+            '🎵 Musical / Rhythmic': 'Use musical language, rhythm words, music hashtags, beat references, lyrical style'
+          };
+          
+          const selectedMood = Object.keys(moodEnhancements).find(mood => 
+            mood.includes(input.mood) || input.mood.includes(mood.split(' ')[0])
+          );
+          
+          return selectedMood ? `\n        ${moodEnhancements[selectedMood]}` : '';
+        })()}
+
+        STEP 3: CREATE CAPTIONS WITH MAXIMUM DIVERSITY
+        Generate exactly 3 COMPLETELY DIFFERENT captions that feel like they were written by 3 different people:
         
         ✅ MUST directly reference what you see in the image (colors, objects, people, setting, etc.)
         ✅ MUST match the specified mood/tone perfectly
@@ -214,22 +251,46 @@ const generateCaptionsFlow = ai.defineFlow(
         ✅ MUST be concise (under 150 characters each)
         ✅ MUST feel authentic and relatable to Gen Z
         
-        Each caption should have a different approach:
-        - Caption 1: Direct and descriptive about what's in the image
-        - Caption 2: Emotional/relatable angle based on the image content
-        - Caption 3: Trendy/playful with popular phrases/slang
+        🎯 CAPTION DIVERSITY REQUIREMENTS:
+        
+        CAPTION 1 - "Direct & Descriptive" Style:
+        - Focus on WHAT you see (objects, colors, actions)
+        - Use specific details from the image
+        - Straightforward, clear description
+        - Example style: "That golden sunset hitting different 🌅"
+        
+        CAPTION 2 - "Emotional & Relatable" Style:
+        - Focus on HOW it makes you feel
+        - Use emotional language and personal connection
+        - Make it about the viewer's experience
+        - Example style: "When the light hits just right and everything feels magical ✨"
+        
+        CAPTION 3 - "Trendy & Creative" Style:
+        - Use current slang, memes, or viral phrases
+        - Be playful and unexpected
+        - Reference popular culture or trends
+        - Example style: "This is giving main character energy 💅✨"
+        
+        🚫 ANTI-DUPLICATION RULES:
+        - NO similar sentence structures between captions
+        - NO repeated phrases or word patterns
+        - NO similar emoji combinations
+        - NO similar hashtag themes
+        - Each caption must have a completely different "voice"
+        
+        🎨 CREATIVE VARIATIONS TO USE:
+        - Different sentence lengths (short vs. medium vs. long)
+        - Different punctuation styles (minimal vs. expressive)
+        - Different emoji placement (beginning vs. middle vs. end)
+        - Different hashtag strategies (trending vs. niche vs. aesthetic)
+        - Different tone shifts (confident vs. vulnerable vs. playful)
         
         CRITICAL REQUIREMENTS:
         - Your captions MUST prove you analyzed the image by mentioning specific visual elements
         - Reference actual colors, objects, people, actions, or settings you see
         - DO NOT use generic captions that could apply to any image
         - Each caption should feel like it was written by someone who actually saw this specific image
-        
-        EXAMPLES of what to reference:
-        - "That golden sunset hitting different 🌅" (if you see a sunset)
-        - "Coffee shop vibes with that cozy lighting ☕" (if you see a coffee shop)
-        - "This blue dress is everything 💙" (if you see someone in a blue dress)
-        - "Beach waves and good vibes 🌊" (if you see a beach scene)
+        - MAXIMIZE variety in writing style, tone, and approach
         
         Return exactly 3 captions in an array format.`
       },
@@ -243,7 +304,7 @@ const generateCaptionsFlow = ai.defineFlow(
       console.log('🔍 Full AI Result:', result);
       console.log('🔍 Output object:', output);
       console.log('✨ AI Generated Captions:', output?.text ? 'Captions generated' : 'No captions generated');
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ AI Generation Error:', error);
       console.error('❌ Error details:', {
         message: error.message,
@@ -292,6 +353,72 @@ const generateCaptionsFlow = ai.defineFlow(
       if (additionalResponse.output?.text) {
         const additionalLines = additionalResponse.output.text.split('\n').filter((line: string) => line.trim());
         captions = [...captions, ...additionalLines].slice(0, 3);
+      }
+    }
+
+    // 🎯 ENHANCED DIVERSITY CHECK AND REGENERATION
+    // Check if captions are too similar and regenerate if needed
+    const checkDiversity = (captions: string[]): boolean => {
+      if (captions.length < 2) return true;
+      
+      // Check for similar sentence structures
+      const hasSimilarStructure = captions.some((caption, i) => 
+        captions.slice(i + 1).some(otherCaption => {
+          const words1 = caption.toLowerCase().split(/\s+/);
+          const words2 = otherCaption.toLowerCase().split(/\s+/);
+          const commonWords = words1.filter(word => words2.includes(word));
+          return commonWords.length > 3; // If more than 3 common words, consider similar
+        })
+      );
+      
+      // Check for similar emoji patterns
+      const emojiPatterns = captions.map(caption => 
+        caption.match(/[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu)?.join('') || ''
+      );
+      const hasSimilarEmojis = emojiPatterns.some((pattern, i) => 
+        emojiPatterns.slice(i + 1).some(otherPattern => 
+          pattern === otherPattern || pattern.includes(otherPattern) || otherPattern.includes(pattern)
+        )
+      );
+      
+      return !hasSimilarStructure && !hasSimilarEmojis;
+    };
+
+    // If captions lack diversity, regenerate with enhanced prompt
+    if (!checkDiversity(captions)) {
+      console.log('🔄 Captions lack diversity, regenerating with enhanced prompt...');
+      
+      const diversityPrompt = `The previous captions were too similar. Generate 3 COMPLETELY DIFFERENT captions for this image:
+
+        IMAGE ANALYSIS: ${input.mood} mood, ${input.description ? `Context: ${input.description}` : 'No additional context'}
+        
+        DIVERSITY REQUIREMENTS:
+        - Caption 1: Use a QUESTION format (e.g., "Who else loves this vibe? ✨")
+        - Caption 2: Use a STATEMENT format (e.g., "This is everything I needed today 💫")
+        - Caption 3: Use a COMMAND format (e.g., "Stop scrolling and appreciate this moment 🛑")
+        
+        - Different emoji sets for each caption
+        - Different hashtag themes (trending, aesthetic, personal)
+        - Different sentence lengths and structures
+        - Reference specific visual elements from the image
+        
+        Make each caption feel like it was written by a completely different person!`;
+      
+      try {
+        const diversityResponse = await ai.generate([
+          { text: diversityPrompt },
+          { media: { url: input.imageUrl } }
+        ]);
+        
+        if (diversityResponse.output?.text) {
+          const newCaptions = diversityResponse.output.text.split('\n').filter((line: string) => line.trim());
+          if (newCaptions.length >= 3) {
+            captions = newCaptions.slice(0, 3);
+            console.log('✅ Regenerated diverse captions successfully');
+          }
+        }
+      } catch (error) {
+        console.log('⚠️ Diversity regeneration failed, using original captions');
       }
     }
 

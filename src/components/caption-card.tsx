@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { Check, Copy } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
+import { InlineMessage } from '@/components/ui/inline-message';
 
 interface CaptionCardProps {
   caption: string;
@@ -13,15 +13,17 @@ interface CaptionCardProps {
 
 export function CaptionCard({ caption }: CaptionCardProps) {
   const [copied, setCopied] = useState(false);
-  const { toast } = useToast();
+  const [inlineMessage, setInlineMessage] = useState<string | null>(null);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(caption);
     setCopied(true);
-    toast({
-      title: "Copied to clipboard!",
-      description: "Now go make some magic happen. ✨",
-    });
+    setInlineMessage("Copied to clipboard! ✨");
+    
+    // Clear message after 2 seconds
+    setTimeout(() => {
+      setInlineMessage(null);
+    }, 2000);
   };
 
   useEffect(() => {
@@ -35,6 +37,17 @@ export function CaptionCard({ caption }: CaptionCardProps) {
 
   return (
     <div className="group bg-muted/40 transition-all duration-300 rounded-lg flex flex-col justify-between min-h-[140px] sm:min-h-[150px] border border-border hover:border-primary/50">
+      {/* Inline Message Display */}
+      {inlineMessage && (
+        <div className="px-3 sm:px-4 pt-3 sm:pt-4">
+          <InlineMessage
+            type="success"
+            message={inlineMessage}
+            className="text-xs sm:text-sm"
+          />
+        </div>
+      )}
+      
       {/* Caption Content - Mobile First */}
       <div className="p-3 sm:p-4 flex-grow">
         <p className="text-foreground/90 text-xs sm:text-sm leading-relaxed">{caption}</p>

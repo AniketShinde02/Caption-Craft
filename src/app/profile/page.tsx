@@ -16,7 +16,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { useToast } from '@/hooks/use-toast';
+
+import { InlineMessage } from '@/components/ui/inline-message';
 import ProfileDeletion from '@/components/ProfileDeletion';
 
 export default function ProfilePage() {
@@ -66,9 +67,12 @@ export default function ProfilePage() {
     // Performance optimization: prevent multiple rapid clicks
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
     
+    // Inline message state to replace toast notifications
+    const [inlineMessage, setInlineMessage] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
+    
     // Refs must be declared directly, not wrapped in useState
     const profileImageInputRef = useRef<HTMLInputElement>(null);
-    const { toast } = useToast();
+    // Toast functionality replaced with inline messages
 
     // CRITICAL: All hooks must be called before any conditional returns
     // This ensures hooks are called in the same order every render
@@ -270,20 +274,18 @@ export default function ProfilePage() {
 
         // Validate file type
         if (!file.type.startsWith('image/')) {
-            toast({
-                title: "Invalid file type",
-                description: "Please select an image file.",
-                variant: "destructive",
+            setInlineMessage({
+                type: 'error',
+                message: 'Please select an image file.'
             });
             return;
         }
 
         // Validate file size (max 5MB)
         if (file.size > 5 * 1024 * 1024) {
-            toast({
-                title: "File too large",
-                description: "Please select an image smaller than 5MB.",
-                variant: "destructive",
+            setInlineMessage({
+                type: 'error',
+                message: 'Please select an image smaller than 5MB.'
             });
             return;
         }
@@ -327,17 +329,16 @@ export default function ProfilePage() {
             setProfileImage(imageUrl);
             setImageUrl(imageUrl);
 
-            toast({
-                title: "Profile image updated!",
-                description: "Your profile image has been successfully updated.",
+            setInlineMessage({
+                type: 'success',
+                message: 'Your profile image has been successfully updated.'
             });
 
         } catch (error) {
             console.error('Profile image upload error:', error);
-            toast({
-                title: "Upload failed",
-                description: "Failed to update profile image. Please try again.",
-                variant: "destructive",
+            setInlineMessage({
+                type: 'error',
+                message: 'Failed to update profile image. Please try again.'
             });
         } finally {
             setUploadingImage(false);
@@ -362,17 +363,16 @@ export default function ProfilePage() {
             setProfileImage('');
             setImageUrl('');
 
-            toast({
-                title: "Profile image removed",
-                description: "Your profile image has been removed.",
+            setInlineMessage({
+                type: 'success',
+                message: 'Your profile image has been removed.'
             });
 
         } catch (error) {
             console.error('Remove profile image error:', error);
-            toast({
-                title: "Remove failed",
-                description: "Failed to remove profile image. Please try again.",
-                variant: "destructive",
+            setInlineMessage({
+                type: 'error',
+                message: 'Failed to remove profile image. Please try again.'
             });
         }
     };
@@ -391,9 +391,9 @@ export default function ProfilePage() {
             });
 
             if (response.ok) {
-                toast({
-                    title: "Recovery request submitted!",
-                    description: "We've received your data recovery request. Our team will review it and contact you within 24-48 hours.",
+                setInlineMessage({
+                    type: 'success',
+                    message: "We've received your data recovery request. Our team will review it and contact you within 24-48 hours."
                 });
                 
                 // Reset form and close dialog
@@ -406,10 +406,9 @@ export default function ProfilePage() {
                 throw new Error(data.message || 'Failed to submit recovery request');
             }
         } catch (error: any) {
-            toast({
-                title: "Request failed",
-                description: error.message || 'Failed to submit recovery request. Please try again.',
-                variant: "destructive",
+            setInlineMessage({
+                type: 'error',
+                message: error.message || 'Failed to submit recovery request. Please try again.'
             });
         }
     };
@@ -556,6 +555,16 @@ export default function ProfilePage() {
                         <Card className="bg-card">
                             <CardContent className="p-4 md:p-6">
                                 <h2 className="text-lg md:text-xl font-semibold mb-4 md:mb-6">Profile Settings</h2>
+                                
+                                {/* Inline Message Display */}
+                                {inlineMessage && (
+                                    <InlineMessage
+                                        type={inlineMessage.type}
+                                        message={inlineMessage.message}
+                                        onDismiss={() => setInlineMessage(null)}
+                                        className="mb-4"
+                                    />
+                                )}
                                 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                                     {/* Full Name */}
@@ -786,9 +795,9 @@ export default function ProfilePage() {
                                                                                          }));
                                                                                          
                                                                                          // Show success message
-                                                                                         toast({
-                                                                                             title: "Caption deleted successfully!",
-                                                                                             description: data.message || "Image and caption have been removed from your history.",
+                                                                                         setInlineMessage({
+                                                                                             type: 'success',
+                                                                                             message: data.message || "Image and caption have been removed from your history."
                                                                                          });
                                                                                      } else {
                                                                                          const data = await response.json();
@@ -807,10 +816,9 @@ export default function ProfilePage() {
                                                                                                  totalImages: Math.max(0, prevStats.totalImages - (post.image ? 1 : 0))
                                                                                              }));
                                                                                              
-                                                                                             toast({
-                                                                                                 title: "Caption deleted!",
-                                                                                                 description: "Caption removed from history. Image may still exist in storage due to technical limitations.",
-                                                                                                 variant: "default",
+                                                                                             setInlineMessage({
+                                                                                                 type: 'info',
+                                                                                                 message: "Caption removed from history. Image may still exist in storage due to technical limitations."
                                                                                              });
                                                                                          } else {
                                                                                              throw new Error(data.message || 'Failed to delete caption');
@@ -820,10 +828,9 @@ export default function ProfilePage() {
                                                                                      console.error('Failed to delete caption:', err);
                                                                                      
                                                                                      // Show user-friendly error message
-                                                                                     toast({
-                                                                                         title: "Delete failed",
-                                                                                         description: err.message || "Failed to delete caption. Please try again.",
-                                                                                         variant: "destructive",
+                                                                                     setInlineMessage({
+                                                                                         type: 'error',
+                                                                                         message: err.message || "Failed to delete caption. Please try again."
                                                                                      });
                                                                                      
                                                                                      setShowDeleteConfirm(null);

@@ -73,7 +73,7 @@ export default function TermsPage() {
               <section>
                 <h2 className="text-2xl font-semibold mb-3 text-primary">9. Contact Information</h2>
                 <p className="text-base leading-relaxed text-muted-foreground">
-                  If you have any questions about these Terms, please contact us at <a className="text-primary hover:underline" href="mailto:support@captioncraft.com">support@captioncraft.com</a>.
+                  If you have any questions about these Terms, please contact us at <a className="text-primary hover:underline" href="mailto:ai.captioncraft@outlook.com">ai.captioncraft@outlook.com</a>.
                 </p>
               </section>
             </div>

@@ -76,8 +76,8 @@ cp env.example .env
 
 To access the admin panel, you need to create a user with admin privileges. The current system checks for these email addresses:
 
-- `admin@captioncraft.com`
-- `moderator@captioncraft.com`
+- `ai.captioncraft@outlook.com`
+- `ai.captioncraft@outlook.com`
 
 You can modify this in the admin API routes to implement proper role-based access control.
 

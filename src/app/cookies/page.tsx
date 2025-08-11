@@ -175,7 +175,7 @@ export default function CookiePolicyPage() {
                   If you have any questions about our use of cookies, please contact us at:
                 </p>
                 <ul className="list-none space-y-2">
-                  <li><strong>Email:</strong> privacy@captioncraft.ai</li>
+                  <li><strong>Email:</strong> ai.captioncraft@outlook.com</li>
                   <li><strong>Address:</strong> San Francisco, CA</li>
                 </ul>
               </CardContent>

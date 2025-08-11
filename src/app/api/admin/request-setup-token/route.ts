@@ -36,7 +36,8 @@ export async function POST(request: NextRequest) {
 
     // Generate a unique JWT token for setup
     const tokenPayload = {
-      purpose: 'admin-setup',
+      type: 'admin-setup',
+      purpose: 'initial-admin-creation',
       email: email,
       iat: Math.floor(Date.now() / 1000),
       exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60), // 24 hours

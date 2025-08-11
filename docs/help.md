@@ -299,7 +299,7 @@ Need help? Here are your options:
 1. **Documentation**: Check this help file first
 2. **GitHub Issues**: Report bugs and feature requests
 3. **Community**: Join our Discord server (link in README)
-4. **Email**: Contact support@captioncraft.com
+4. **Email**: Contact ai.captioncraft@outlook.com
 
 ---
 

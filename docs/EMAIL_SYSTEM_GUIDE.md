@@ -197,7 +197,7 @@ SMTP_HOST=smtp.example.com
 SMTP_PORT=587
 SMTP_USER=your-email@example.com
 SMTP_PASS=your-password
-SMTP_FROM=CaptionCraft <noreply@captioncraft.com>
+SMTP_FROM=CaptionCraft <ai.captioncraft@outlook.com>
 
 # Application URLs
 NEXTAUTH_URL=https://captioncraft.com

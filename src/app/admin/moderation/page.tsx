@@ -131,7 +131,7 @@ export default function ContentModerationPage() {
             status: 'resolved' as const, 
             action: action as any,
             reviewedAt: new Date().toISOString(),
-            reviewedBy: 'admin@captioncraft.com'
+            reviewedBy: 'ai.captioncraft@outlook.com'
           } : r
         ));
       } else {
