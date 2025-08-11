@@ -15,6 +15,7 @@ export interface IDeletedProfile extends Document {
     _id: string;
     caption: string;
     image?: string;
+    archivedImageUrl?: string; // New field for archived image URL
     createdAt: Date;
   }>;
   deletionReason?: string;
@@ -22,13 +23,20 @@ export interface IDeletedProfile extends Document {
   deletedBy: string; // User ID who initiated the deletion
   ipAddress?: string;
   userAgent?: string;
+  archiveMetadata?: {
+    totalImages: number;
+    successfullyArchived: number;
+    failedArchives: number;
+    archiveErrors?: Array<{ url: string; error: string }>;
+    archivedAt: Date;
+  };
 }
 
 const DeletedProfileSchema: Schema = new Schema({
   originalUserId: {
     type: String,
     required: true,
-    index: true,
+    // Remove duplicate index definition below
   },
   userData: {
     email: { type: String, required: true },
@@ -43,6 +51,7 @@ const DeletedProfileSchema: Schema = new Schema({
     _id: String,
     caption: String,
     image: String,
+    archivedImageUrl: String, // New field for archived image URL
     createdAt: Date,
   }],
   deletionReason: {
@@ -59,14 +68,22 @@ const DeletedProfileSchema: Schema = new Schema({
   },
   ipAddress: String,
   userAgent: String,
-}, {
-  // Add indexes for efficient querying
-  indexes: [
-    { originalUserId: 1 },
-    { deletedAt: 1 },
-    { 'userData.email': 1 }
-  ]
+  archiveMetadata: {
+    totalImages: Number,
+    successfullyArchived: Number,
+    failedArchives: Number,
+    archiveErrors: [{
+      url: String,
+      error: String,
+    }],
+    archivedAt: Date,
+  },
 });
+
+// Add indexes for efficient querying
+// Note: originalUserId index is already defined in the schema above
+DeletedProfileSchema.index({ deletedAt: 1 });
+DeletedProfileSchema.index({ 'userData.email': 1 });
 
 // Add a TTL index to automatically delete archived profiles after a certain period (optional)
 // Uncomment the line below if you want to automatically delete archived data after 2 years

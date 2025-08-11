@@ -34,6 +34,7 @@ interface DeletePreview {
   accountEmail: string;
   username: string;
   totalCaptions: number;
+  totalImages: number; // New field for image count
   accountCreated: string;
   lastActivity: string;
 }
@@ -147,7 +148,7 @@ export default function ProfileDeletion({ userEmail }: { userEmail: string }) {
           </h3>
           <p className="text-green-700 dark:text-green-300 mb-4">
             Your account and data have been archived according to our data retention policy. 
-            You will be logged out automatically.
+            All your images have been safely moved to our archive storage. You will be logged out automatically.
           </p>
           <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
             Logging out in 3 seconds...
@@ -177,6 +178,7 @@ export default function ProfileDeletion({ userEmail }: { userEmail: string }) {
               </p>
               <ul className="text-red-600 dark:text-red-400 text-xs space-y-1">
                 <li>• All your generated captions will be deleted</li>
+                <li>• Your images will be archived to our secure storage</li>
                 <li>• Your profile information will be archived for legal compliance</li>
                 <li>• You will lose access to all premium features</li>
                 <li>• This action is irreversible</li>
@@ -302,6 +304,10 @@ export default function ProfileDeletion({ userEmail }: { userEmail: string }) {
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Total Captions:</span>
                         <Badge variant="secondary">{deletePreview.totalCaptions}</Badge>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Total Images:</span>
+                        <Badge variant="secondary">{deletePreview.totalImages}</Badge>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Member Since:</span>

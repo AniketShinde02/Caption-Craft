@@ -3,7 +3,10 @@ import type {NextAuthOptions} from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import dbConnect from '@/lib/db';
 import User from '@/models/User';
+import AdminUser from '@/models/AdminUser';
 import bcrypt from 'bcryptjs';
+import { connectToDatabase } from '@/lib/db';
+import { ObjectId } from 'mongodb';
 
 // Debug: Check NextAuth environment variables
 console.log('🔐 NextAuth Environment Check:', {
@@ -47,11 +50,81 @@ export const authOptions: NextAuthOptions = {
           throw new Error('Invalid credentials.');
         }
         
+        // Update user's last login time and status
+        await User.findByIdAndUpdate(user._id, { 
+          lastLoginAt: new Date(),
+          status: 'active' // Ensure user is marked as active on login
+        });
+        
         // Return a plain, serializable object. This is the critical fix.
         return {
           id: user._id.toString(),
           email: user.email,
         };
+      },
+    }),
+    CredentialsProvider({
+      id: 'admin-credentials',
+      name: 'Admin Credentials',
+      credentials: {
+        email: { label: 'Email', type: 'email' },
+        password: { label: 'Password', type: 'password' }
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) {
+          console.log('❌ Admin auth: Missing credentials');
+          return null;
+        }
+
+        try {
+          console.log('🔐 Admin auth: Attempting login for:', credentials.email);
+          
+          // Find admin user using AdminUser model
+          const adminUser = await AdminUser.findOne({
+            email: credentials.email.toLowerCase(),
+            isAdmin: true
+          }).select('+password');
+
+          if (!adminUser) {
+            console.log('❌ Admin auth: No admin user found with email:', credentials.email);
+            return null;
+          }
+
+          console.log('✅ Admin auth: Found admin user:', { id: adminUser._id, role: adminUser.role });
+
+          // Check if account is locked
+          if (adminUser.isLocked()) {
+            console.log('❌ Admin auth: Account locked for:', credentials.email);
+            return null;
+          }
+
+          // Verify password using AdminUser model method
+          const isPasswordValid = await adminUser.comparePassword(credentials.password);
+          if (!isPasswordValid) {
+            console.log('❌ Admin auth: Invalid password for:', credentials.email);
+            return null;
+          }
+
+          console.log('✅ Admin auth: Password verified for:', credentials.email);
+
+          // Update last login time
+          adminUser.lastLoginAt = new Date();
+          await adminUser.save();
+
+          // Return admin user data
+          return {
+            id: adminUser._id.toString(),
+            email: adminUser.email,
+            username: adminUser.username,
+            role: adminUser.role,
+            isAdmin: adminUser.isAdmin,
+            isSuperAdmin: adminUser.isSuperAdmin,
+            status: adminUser.status
+          };
+        } catch (error) {
+          console.error('❌ Admin auth error:', error);
+          return null;
+        }
       },
     }),
   ],
@@ -97,24 +170,52 @@ export const authOptions: NextAuthOptions = {
   pages: {
     signIn: '/',
   },
-  // Enhanced callbacks with better error handling and session validation
+  // Add configuration to allow public routes
   callbacks: {
     async jwt({ token, user, account }) {
       // Initial sign in
       if (user && account) {
         token.id = user.id;
         token.email = user.email;
+        token.role = (user as any).role;
+        token.username = (user as any).username;
+        token.isVerified = (user as any).isVerified;
         // Add timestamp to track when token was created
         token.iat = Math.floor(Date.now() / 1000);
         token.lastValidated = Math.floor(Date.now() / 1000);
       }
       
-      // Only validate token periodically, not on every request
+      // Handle admin users differently
+      if (token.role?.name === 'admin') {
+        // For admin users, validate against users collection
+        const now = Math.floor(Date.now() / 1000);
+        const timeSinceLastValidation = now - (Number(token.lastValidated) || 0);
+        
+        if (timeSinceLastValidation > 24 * 60 * 60) { // 24 hours for admin
+          try {
+            const { db } = await connectToDatabase();
+            const adminUser = await db.collection('users').findOne({
+              _id: new ObjectId(token.id),
+              'role.name': 'admin'
+            });
+            
+            if (!adminUser) {
+              // Admin user no longer exists or role changed
+              return { ...token, id: '', email: '', role: undefined };
+            }
+            token.lastValidated = now;
+          } catch (error) {
+            console.error('Error validating admin user in JWT callback:', error);
+          }
+        }
+        return token;
+      }
+      
+      // Regular user validation (existing logic)
       const now = Math.floor(Date.now() / 1000);
       const timeSinceLastValidation = now - (Number(token.lastValidated) || 0);
       
-      // Completely disable database validation - too aggressive
-      // Only validate user existence if token is very old (7 days)
+      // Only validate token periodically, not on every request
       if (token.id && timeSinceLastValidation > 7 * 24 * 60 * 60) {
         try {
           await dbConnect();
@@ -137,14 +238,57 @@ export const authOptions: NextAuthOptions = {
       return token;
     },
     async session({ session, token }) {
+      console.log('🔐 Session callback - Token:', { id: token.id, role: token.role, email: token.email });
+      
       if (token && session.user) {
-        // Ensure the session user object has the id
+        // Ensure the session user object has the id and admin properties
         session.user.id = token.id as string;
+        session.user.role = token.role as any; // Pass the entire role object
+        session.user.username = token.username as string;
+        session.user.isVerified = token.isVerified as boolean;
         
-        // Only fetch user data if we haven't validated recently
+        console.log('🔐 Session callback - Updated session user:', { 
+          id: session.user.id, 
+          role: session.user.role, 
+          email: session.user.email 
+        });
+        
+        // Handle admin users differently
+        if (token.role?.name === 'admin') {
+          console.log('🔐 Session callback - Processing admin user');
+          const timeSinceLastValidation = Math.floor(Date.now() / 1000) - (Number(token.lastValidated) || 0);
+          
+          if (timeSinceLastValidation > 24 * 60 * 60) { // 24 hours for admin
+            try {
+              const { db } = await connectToDatabase();
+              const adminUser = await db.collection('users').findOne({
+                _id: new ObjectId(token.id),
+                'role.name': 'admin'
+              });
+              
+              if (adminUser) {
+                console.log('✅ Session callback - Admin user validated:', adminUser.email);
+                session.user.email = adminUser.email;
+                session.user.role = adminUser.role; // Pass the entire role object
+                session.user.username = adminUser.username || adminUser.name;
+                session.user.isVerified = adminUser.isVerified || false;
+              } else {
+                console.log('❌ Session callback - Admin user no longer exists or role changed');
+                // Admin user no longer exists or role changed
+                return { ...session, user: { id: '', email: '', name: '' } };
+              }
+            } catch (error) {
+              console.error('❌ Session callback - Error fetching admin user:', error);
+            }
+          } else {
+            console.log('✅ Session callback - Admin user recently validated, skipping DB check');
+          }
+          return session;
+        }
+        
+        // Regular user validation (existing logic)
         const timeSinceLastValidation = Math.floor(Date.now() / 1000) - (Number(token.lastValidated) || 0);
         
-        // Completely disable session validation - too aggressive
         // Only fetch user data if session is very old (14 days) 
         if (timeSinceLastValidation > 14 * 24 * 60 * 60) {
           try {
@@ -169,10 +313,22 @@ export const authOptions: NextAuthOptions = {
           }
         }
       }
+      
+      console.log('🔐 Session callback - Final session:', { 
+        userId: session.user?.id, 
+        userRole: session.user?.role, 
+        userEmail: session.user?.email 
+      });
       return session;
     },
     async signIn({ user, account, profile }) {
-      // Additional sign-in validation
+      // Handle admin credentials provider
+      if (account?.provider === 'admin-credentials') {
+        // Admin users are already validated in the authorize callback
+        return (user as any).role?.name === 'admin';
+      }
+      
+      // Regular credentials provider validation
       if (account?.provider === 'credentials') {
         try {
           await dbConnect();

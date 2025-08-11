@@ -28,15 +28,13 @@ if (!MONGODB_URI) {
 let cached = (global as any).mongoose;
 let cachedClient = (global as any).mongoClient;
 
-
 if (!cached) {
   cached = (global as any).mongoose = { conn: null, promise: null };
 }
 
 if (!cachedClient) {
-    cachedClient = (global as any).mongoClient = { client: null, promise: null };
+  cachedClient = (global as any).mongoClient = { client: null, promise: null };
 }
-
 
 async function dbConnect(): Promise<Mongoose> {
   if (cached.conn) {
@@ -90,3 +88,18 @@ if (process.env.NODE_ENV === 'development') {
 
 export { clientPromise };
 export default dbConnect;
+
+/**
+ * Connect to MongoDB and return database instance for direct operations
+ * This function is used for admin operations that need direct MongoDB access
+ */
+export async function connectToDatabase() {
+  try {
+    const client = await clientPromise;
+    const db = client.db();
+    return { client, db };
+  } catch (error) {
+    console.error('Failed to connect to database:', error);
+    throw new Error('Database connection failed');
+  }
+}

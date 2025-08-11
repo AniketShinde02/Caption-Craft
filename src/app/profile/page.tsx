@@ -15,7 +15,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import ProfileDeletion from '@/components/ProfileDeletion';
 
@@ -27,39 +27,22 @@ export default function ProfilePage() {
       },
     });
 
-    // Debug logging
-    console.log('🔍 Profile Page Debug:', { status, session: !!session, userId: session?.user?.id });
+    // Ensure consistent session state to prevent hook order issues
+    const sessionStatus = status || 'loading';
+    const sessionData = session || null;
+
+    // Debug logging - moved after variables are declared
+    console.log('🔍 Profile Page Debug:', { status: sessionStatus, session: !!sessionData, userId: sessionData?.user?.id });
+
+    // Safety check: ensure we always have a valid status
+    if (!sessionStatus) {
+        console.warn('⚠️ ProfilePage: sessionStatus is undefined, defaulting to loading');
+    }
 
     const [posts, setPosts] = useState<IPost[]>([]);
     const [isLoadingPosts, setIsLoadingPosts] = useState(true);
-
-    // Show loading state while session is loading
-    if (status === 'loading') {
-        return (
-            <div className="min-h-screen flex items-center justify-center">
-                <div className="text-center">
-                    <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
-                    <p className="text-muted-foreground">Loading profile...</p>
-                </div>
-            </div>
-        );
-    }
-
-    // Show error state if session failed
-    if (status === 'unauthenticated') {
-        return (
-            <div className="min-h-screen flex items-center justify-center">
-                <div className="text-center">
-                    <AlertCircle className="w-8 h-8 text-destructive mx-auto mb-4" />
-                    <p className="text-destructive mb-4">Authentication required</p>
-                    <Link href="/" className="text-primary hover:underline">
-                        Go back to home
-                    </Link>
-                </div>
-            </div>
-        );
-    }
-
+    const [expandedCaptionId, setExpandedCaptionId] = useState<string | null>(null);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
     const [username, setUsername] = useState<string>('');
     const [title, setTitle] = useState<string>('');
     const [bio, setBio] = useState<string>('');
@@ -67,29 +50,32 @@ export default function ProfilePage() {
     const [savingProfile, setSavingProfile] = useState<boolean>(false);
     const [profileError, setProfileError] = useState('');
     const [profileSuccess, setProfileSuccess] = useState('');
-    const [selectedCaption, setSelectedCaption] = useState<{ caption: string, mood: string, date: string, image?: string, id?: string } | null>(null);
-    const [isDialogOpen, setIsDialogOpen] = useState(false);
-    
-    // Profile image upload states
     const [profileImage, setProfileImage] = useState<string>('');
     const [uploadingImage, setUploadingImage] = useState(false);
-
-    const fileInputRef = useRef<HTMLInputElement | null>(null);
-    const profileImageInputRef = useRef<HTMLInputElement | null>(null);
+    const [showDataRecovery, setShowDataRecovery] = useState(false);
+    const [recoveryReason, setRecoveryReason] = useState('');
+    const [recoveryDetails, setRecoveryDetails] = useState('');
+    const [contactEmail, setContactEmail] = useState('');
+    const [stats, setStats] = useState({
+        captionsGenerated: 0,
+        mostUsedMood: 'None',
+        averageLength: 0,
+        totalImages: 0
+    });
+    
+    // Performance optimization: prevent multiple rapid clicks
+    const [isDeleting, setIsDeleting] = useState<string | null>(null);
+    
+    // Refs must be declared directly, not wrapped in useState
+    const profileImageInputRef = useRef<HTMLInputElement>(null);
     const { toast } = useToast();
 
-    // Usage Statistics (mock data for now)
-    const [stats, setStats] = useState({
-        captionsGenerated: 1250,
-        mostUsedMood: 'Joyful',
-        followers: '15.k',
-        engagement: '8.7%'
-    });
-
+    // CRITICAL: All hooks must be called before any conditional returns
+    // This ensures hooks are called in the same order every render
     useEffect(() => {
         const fetchData = async () => {
-            if (session?.user?.id) {
-                console.log('🔄 Fetching profile data for user:', session.user.id);
+            if (sessionData?.user?.id) {
+                console.log('🔄 Fetching profile data for user:', sessionData.user.id);
                 setIsLoadingPosts(true);
                 try {
                     const [postsRes, userRes] = await Promise.all([
@@ -106,39 +92,131 @@ export default function ProfilePage() {
                         const p = await postsRes.json();
                         console.log('📝 Posts data:', p);
                         setPosts(p.data);
+                        
+                        // Update stats based on posts data
+                        if (p.data && Array.isArray(p.data)) {
+                            const moodCounts: Record<string, number> = {};
+                            let totalLength = 0;
+                            let imageCount = 0;
+                            
+                            p.data.forEach((post: any) => {
+                                // Count moods
+                                const mood = post.mood || 'None';
+                                moodCounts[mood] = (moodCounts[mood] || 0) + 1;
+                                
+                                // Count total length
+                                if (post.captions && post.captions.length > 0) {
+                                    totalLength += post.captions[0].length;
+                                }
+                                
+                                // Count images
+                                if (post.image) {
+                                    imageCount++;
+                                }
+                            });
+                            
+                            // Find most used mood
+                            const mostUsedMood = Object.keys(moodCounts).length > 0 ? 
+                                Object.keys(moodCounts).reduce((a, b) => moodCounts[a] > moodCounts[b] ? a : b) : 'None';
+                            
+                            setStats(prevStats => ({
+                                ...prevStats,
+                                captionsGenerated: p.data.length,
+                                totalImages: imageCount,
+                                averageLength: p.data.length > 0 ? Math.round(totalLength / p.data.length) : 0,
+                                mostUsedMood: mostUsedMood
+                            }));
+                        }
                     } else {
-                        console.error('❌ Posts API failed:', postsRes.status, postsRes.statusText);
+                        console.error('❌ Failed to fetch posts:', postsRes.status);
                     }
                     
                     if (userRes.ok) {
-                        const u = await userRes.json();
-                        console.log('👤 User data:', u);
-                        setUsername(u.data.username || 'Cursor AI');
-                        setTitle(u.data.title || 'AI Assistant');
-                        setBio(u.data.bio || 'Your intelligent coding companion, ready to help you build amazing applications with precision and creativity. Let\'s code the future together!');
-                        setImageUrl(u.data.image || '');
-                        setProfileImage(u.data.image || '');
+                        const userData = await userRes.json();
+                        console.log('👤 User data:', userData);
+                        setUsername(userData.username || '');
+                        setTitle(userData.title || '');
+                        setBio(userData.bio || '');
+                        setImageUrl(userData.imageUrl || '');
+                        setProfileImage(userData.imageUrl || '');
                     } else {
-                        console.error('❌ User API failed:', userRes.status, userRes.statusText);
+                        console.error('❌ Failed to fetch user data:', userRes.status);
                     }
                 } catch (error) {
-                    console.error('💥 Failed to fetch data', error);
+                    console.error('❌ Error fetching data:', error);
                 } finally {
                     setIsLoadingPosts(false);
                 }
-            } else {
-                console.log('⏳ No session user ID yet, waiting...');
             }
         };
 
         fetchData();
-    }, [session]);
+    }, [sessionData?.user?.id || null]);
+
+    // ===== CONDITIONAL RENDERING BEGINS HERE =====
+    // All hooks have been called above, now safe to return early
+    if ((sessionStatus as string) === 'loading') {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <div className="text-center">
+                    <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
+                    <p className="text-muted-foreground">Loading profile...</p>
+                </div>
+            </div>
+        );
+    }
+
+    // Check if user is admin and redirect them appropriately
+    if (sessionData?.user?.role?.name === 'admin') {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <div className="text-center max-w-md mx-auto p-6">
+                    <AlertCircle className="w-8 h-8 text-destructive mx-auto mb-4" />
+                    <h2 className="text-xl font-semibold mb-2">Admin Access Restricted</h2>
+                    <p className="text-muted-foreground mb-4">
+                        Admin users cannot access the profile page directly. Please logout first to access your profile as a regular user.
+                    </p>
+                    <div className="space-y-2">
+                        <Button 
+                            onClick={() => signOut({ callbackUrl: '/' })}
+                            className="w-full"
+                        >
+                            <LogOut className="w-4 h-4 mr-2" />
+                            Logout to Access Profile
+                        </Button>
+                        <Button 
+                            variant="outline" 
+                            onClick={() => window.history.back()}
+                            className="w-full"
+                        >
+                            Go Back
+                        </Button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // Show error state if session failed
+    if ((sessionStatus as string) === 'unauthenticated') {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <div className="text-center">
+                    <AlertCircle className="w-8 h-8 text-destructive mx-auto mb-4" />
+                    <p className="text-destructive mb-4">Authentication required</p>
+                    <Link href="/" className="text-primary hover:underline">
+                        Go back to home
+                    </Link>
+                </div>
+            </div>
+        );
+    }
     
-    const userEmail = session?.user?.email || 'sophia.carter@example.com';
+    const userEmail = sessionData?.user?.email || 'sophia.carter@example.com';
     const fallbackName = userEmail ? userEmail.split('@')[0] : 'User';
     const displayName = username || fallbackName;
     // @ts-ignore
-    const userJoined = session?.user?.createdAt ? format(new Date(session.user.createdAt), 'yyyy') : '2022';
+    const userJoined = sessionData?.user?.createdAt ? format(new Date(sessionData.user.createdAt), 'yyyy') : '2022';
 
     const handleSaveProfile = async () => {
         setSavingProfile(true);
@@ -299,7 +377,44 @@ export default function ProfilePage() {
         }
     };
 
-    if (status === 'loading') {
+    // Handle data recovery request
+    const handleDataRecoveryRequest = async () => {
+        try {
+            const response = await fetch('/api/user/data-recovery-request', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    reason: recoveryReason,
+                    details: recoveryDetails,
+                    contactEmail: contactEmail || sessionData?.user?.email,
+                }),
+            });
+
+            if (response.ok) {
+                toast({
+                    title: "Recovery request submitted!",
+                    description: "We've received your data recovery request. Our team will review it and contact you within 24-48 hours.",
+                });
+                
+                // Reset form and close dialog
+                setRecoveryReason('');
+                setRecoveryDetails('');
+                setContactEmail('');
+                setShowDataRecovery(false);
+            } else {
+                const data = await response.json();
+                throw new Error(data.message || 'Failed to submit recovery request');
+            }
+        } catch (error: any) {
+            toast({
+                title: "Request failed",
+                description: error.message || 'Failed to submit recovery request. Please try again.',
+                variant: "destructive",
+            });
+        }
+    };
+
+    if (sessionStatus === 'loading') {
         return (
             <div className="flex justify-center items-center min-h-screen bg-background">
                 <Loader2 className="h-16 w-16 animate-spin text-primary" />
@@ -310,15 +425,15 @@ export default function ProfilePage() {
     return (
         <div className="min-h-screen bg-background">
             <div className="container mx-auto max-w-7xl px-4 py-8">
-                <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 lg:gap-8">
                     {/* Left Sidebar */}
-                    <div className="lg:col-span-1">
+                    <div className="lg:col-span-1 order-2 lg:order-1">
                         <Card className="bg-card">
-                            <CardContent className="p-6">
+                            <CardContent className="p-4 md:p-6">
                                 {/* Profile Section */}
                                 <div className="text-center mb-6">
                                     <div className="relative inline-block mb-4">
-                                        <Avatar className="w-32 h-32 mx-auto border-4 border-background shadow-xl ring-2 ring-primary/10">
+                                        <Avatar className="w-24 h-24 md:w-32 md:h-32 mx-auto border-4 border-background shadow-xl ring-2 ring-primary/10">
                                             {profileImage ? (
                                                 <AvatarImage 
                                                     src={profileImage} 
@@ -326,7 +441,7 @@ export default function ProfilePage() {
                                                     className="object-cover"
                                                 />
                                             ) : (
-                                                <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/5 text-2xl font-semibold text-primary">
+                                                <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/5 text-xl md:text-2xl font-semibold text-primary">
                                                     {displayName.charAt(0).toUpperCase()}
                                                 </AvatarFallback>
                                             )}
@@ -336,9 +451,9 @@ export default function ProfilePage() {
                                         <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-200 bg-black/50 rounded-full cursor-pointer"
                                              onClick={() => profileImageInputRef.current?.click()}>
                                             {uploadingImage ? (
-                                                <Loader2 className="w-8 h-8 text-white animate-spin" />
+                                                <Loader2 className="w-6 h-6 md:w-8 md:h-8 text-white animate-spin" />
                                             ) : (
-                                                <Edit className="w-8 h-8 text-white" />
+                                                <Edit className="w-6 h-6 md:w-8 md:h-8 text-white" />
                                             )}
                                         </div>
                                         {/* Hidden file input for profile image upload */}
@@ -351,13 +466,13 @@ export default function ProfilePage() {
                                         />
                                     </div>
                                     <div className="space-y-2 px-2">
-                                        <h2 className="text-xl font-bold text-foreground break-words leading-tight" title={displayName}>
+                                        <h2 className="text-lg md:text-xl font-bold text-foreground break-words leading-tight" title={displayName}>
                                             {displayName}
                                         </h2>
-                                        <p className="text-sm text-muted-foreground font-medium break-words" title={title}>
+                                        <p className="text-xs md:text-sm text-muted-foreground font-medium break-words" title={title}>
                                             {title}
                                         </p>
-                                        <p className="text-xs text-muted-foreground bg-muted/30 px-3 py-1 rounded-full inline-block">Joined in {userJoined}</p>
+                                        <p className="text-xs text-muted-foreground bg-muted/30 px-2 md:px-3 py-1 rounded-full inline-block">Joined in {userJoined}</p>
                                     </div>
                                     
                                     {/* Profile Image Actions */}
@@ -408,6 +523,13 @@ export default function ProfilePage() {
                                         <Clock className="w-4 h-4" />
                                         Caption History
                                     </button>
+                                    <button 
+                                        onClick={() => setShowDataRecovery(true)}
+                                        className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                                    >
+                                        <Eye className="w-4 h-4" />
+                                        Data Recovery
+                                    </button>
                                     <Link href="/settings" className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50">
                                         <Settings className="w-4 h-4" />
                                         Preferences
@@ -429,20 +551,21 @@ export default function ProfilePage() {
                     </div>
 
                     {/* Main Content */}
-                    <div className="lg:col-span-3 space-y-8">
+                    <div className="lg:col-span-3 order-1 lg:order-2 space-y-6 lg:space-y-8">
                         {/* Profile Settings */}
                         <Card className="bg-card">
-                            <CardContent className="p-6">
-                                <h2 className="text-xl font-semibold mb-6">Profile Settings</h2>
+                            <CardContent className="p-4 md:p-6">
+                                <h2 className="text-lg md:text-xl font-semibold mb-4 md:mb-6">Profile Settings</h2>
                                 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                                     {/* Full Name */}
                                     <div>
                                         <label className="block text-sm font-medium mb-2">Full Name</label>
                                         <Input
                                             value={username}
                                             onChange={(e) => setUsername(e.target.value)}
-                                            placeholder="Enter full name"
+                                            placeholder="Enter your own details"
+                                            className="text-sm md:text-base"
                                         />
                                     </div>
 
@@ -452,7 +575,8 @@ export default function ProfilePage() {
                                         <Input
                                             value={title}
                                             onChange={(e) => setTitle(e.target.value)}
-                                            placeholder="e.g. Content Creator"
+                                            placeholder="Enter your own details"
+                                            className="text-sm md:text-base"
                                         />
                                     </div>
 
@@ -462,7 +586,8 @@ export default function ProfilePage() {
                                         <Input
                                             value={userEmail}
                                             disabled
-                                            className="bg-muted/50"
+                                            className="bg-muted/50 text-sm md:text-base"
+                                            placeholder="Enter your own details"
                                         />
                                     </div>
 
@@ -472,8 +597,9 @@ export default function ProfilePage() {
                                         <Textarea
                                             value={bio}
                                             onChange={(e) => setBio(e.target.value)}
-                                            placeholder="Tell us about yourself..."
-                                            rows={4}
+                                            placeholder="Enter your own details"
+                                            rows={3}
+                                            className="text-sm md:text-base"
                                         />
                                     </div>
                                 </div>
@@ -494,11 +620,11 @@ export default function ProfilePage() {
                                 )}
 
                                 {/* Action Buttons */}
-                                <div className="flex justify-end gap-3 pt-6">
-                                    <Button variant="outline" onClick={handleCancel}>
+                                <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4 md:pt-6">
+                                    <Button variant="outline" onClick={handleCancel} className="w-full sm:w-auto">
                                         Cancel
                                     </Button>
-                                    <Button onClick={handleSaveProfile} disabled={savingProfile}>
+                                    <Button onClick={handleSaveProfile} disabled={savingProfile} className="w-full sm:w-auto">
                                         {savingProfile ? 'Saving...' : 'Save Changes'}
                                     </Button>
                                 </div>
@@ -508,153 +634,334 @@ export default function ProfilePage() {
                         {/* Usage Statistics */}
                         <div>
                             <h2 className="text-xl font-semibold mb-4">Usage Statistics</h2>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
                                 {/* Captions Generated */}
                                 <Card className="bg-card">
-                                    <CardContent className="p-6 text-center">
-                                        <h3 className="text-sm font-medium text-muted-foreground mb-2">Captions Generated</h3>
-                                        <p className="text-2xl font-bold">{stats.captionsGenerated.toLocaleString()}</p>
+                                    <CardContent className="p-4 md:p-6 text-center">
+                                        <h3 className="text-xs md:text-sm font-medium text-muted-foreground mb-2">Captions Generated</h3>
+                                        <p className="text-xl md:text-2xl font-bold">{stats.captionsGenerated.toLocaleString()}</p>
                                     </CardContent>
                                 </Card>
 
                                 {/* Most Used Mood */}
                                 <Card className="bg-card">
-                                    <CardContent className="p-6 text-center">
-                                        <h3 className="text-sm font-medium text-muted-foreground mb-2">Most Used Mood</h3>
+                                    <CardContent className="p-4 md:p-6 text-center">
+                                        <h3 className="text-xs md:text-sm font-medium text-muted-foreground mb-2">Most Used Mood</h3>
                                         <div className="flex items-center justify-center gap-2">
-                                            <Star className="w-5 h-5 text-yellow-500" />
-                                            <p className="text-lg font-semibold text-green-600">{stats.mostUsedMood}</p>
+                                            <Star className="w-4 h-4 md:w-5 md:h-5 text-yellow-500" />
+                                            <p className="text-sm md:text-lg font-semibold text-green-600 truncate">
+                                                {stats.mostUsedMood}
+                                            </p>
                                         </div>
                                     </CardContent>
                                 </Card>
 
-                                {/* Followers */}
+                                {/* Total Images */}
                                 <Card className="bg-card">
-                                    <CardContent className="p-6 text-center">
-                                        <h3 className="text-sm font-medium text-muted-foreground mb-2">Followers</h3>
-                                        <p className="text-2xl font-bold">{stats.followers}</p>
+                                    <CardContent className="p-4 md:p-6 text-center">
+                                        <h3 className="text-xs md:text-sm font-medium text-muted-foreground mb-2">Total Images</h3>
+                                        <p className="text-xl md:text-2xl font-bold">{stats.totalImages.toLocaleString()}</p>
                                     </CardContent>
                                 </Card>
 
-                                {/* Engagement */}
+                                {/* Average Length */}
                                 <Card className="bg-card">
-                                    <CardContent className="p-6 text-center">
-                                        <h3 className="text-sm font-medium text-muted-foreground mb-2">Engagement</h3>
-                                        <p className="text-2xl font-bold">{stats.engagement}</p>
+                                    <CardContent className="p-4 md:p-6 text-center">
+                                        <h3 className="text-xs md:text-sm font-medium text-muted-foreground mb-2">Avg. Length</h3>
+                                        <p className="text-xl md:text-2xl font-bold">{stats.averageLength} chars</p>
                                     </CardContent>
                                 </Card>
                             </div>
                         </div>
 
-                        {/* Recent Captions */}
-                        <Card className="bg-card" id="recent-captions">
-                            <CardContent className="p-6">
-                                <div className="flex items-center justify-between mb-4">
-                                    <h2 className="text-xl font-semibold">Recent Captions</h2>
-                                    <Button variant="ghost" className="text-primary">
-                                        View all
-                                    </Button>
+                        {/* Caption History */}
+                        <div id="recent-captions">
+                            <h2 className="text-xl font-semibold mb-6">Caption History</h2>
+                            
+                            {isLoadingPosts ? (
+                                <div className="flex justify-center items-center py-12">
+                                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
                                 </div>
+                            ) : posts.length === 0 ? (
+                                <Card className="bg-card">
+                                    <CardContent className="p-12 text-center">
+                                        <Clock className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                                        <h3 className="text-lg font-semibold mb-2">No Captions Yet</h3>
+                                        <p className="text-muted-foreground">Start creating amazing captions for your images!</p>
+                                    </CardContent>
+                                </Card>
+                            ) : (
+                                <div className="space-y-4">
+                                    {posts.map((post) => (
+                                        <Card key={post._id} className="bg-card hover:shadow-md transition-shadow duration-200">
+                                            <CardContent className="p-4">
+                                                <div className="flex items-start gap-4">
+                                                    {/* Image - Fixed display */}
+                                                    <div className="relative w-24 h-24 rounded-lg overflow-hidden bg-muted flex-shrink-0 border border-muted-foreground/20">
+                                                        {post.image ? (
+                                                            <Image
+                                                                src={post.image}
+                                                                alt="Caption image"
+                                                                fill
+                                                                className="object-cover"
+                                                                sizes="96px"
+                                                                priority={false}
+                                                            />
+                                                        ) : (
+                                                            <div className="w-full h-full bg-muted flex items-center justify-center">
+                                                                <span className="text-muted-foreground text-xs">No Image</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    
+                                                    {/* Content */}
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-center justify-between mb-3">
+                                                            <div className="flex items-center gap-3">
+                                                                <Badge variant="secondary" className="text-xs px-2 py-1">
+                                                                    {post.mood || 'Unknown'}
+                                                                </Badge>
+                                                                <span className="text-xs text-muted-foreground bg-muted/50 px-2 py-1 rounded-full">
+                                                                    {format(new Date(post.createdAt), 'MMM dd, yyyy')}
+                                                                </span>
+                                                            </div>
+                                                            <div className="flex items-center gap-2">
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="outline"
+                                                                    onClick={() => {
+                                                                        if (expandedCaptionId === post._id) {
+                                                                            setExpandedCaptionId(null);
+                                                                        } else {
+                                                                            setExpandedCaptionId(post._id);
+                                                                            // Scroll to the expanded content
+                                                                            setTimeout(() => {
+                                                                                document.getElementById(`caption-${post._id}`)?.scrollIntoView({ 
+                                                                                    behavior: 'smooth',
+                                                                                    block: 'nearest'
+                                                                                });
+                                                                            }, 100);
+                                                                        }
+                                                                    }}
+                                                                    className="text-xs"
+                                                                 >
+                                                                     {expandedCaptionId === post._id ? 'Hide' : 'View'}
+                                                                 </Button>
+                                                                 
+                                                                 {showDeleteConfirm === post._id ? (
+                                                                     <div className="flex items-center gap-2">
+                                                                         <Button
+                                                                             size="sm"
+                                                                             variant="outline"
+                                                                             onClick={() => setShowDeleteConfirm(null)}
+                                                                         >
+                                                                             Cancel
+                                                                         </Button>
+                                                                         <Button
+                                                                             size="sm"
+                                                                             variant="destructive"
+                                                                             onClick={async () => {
+                                                                                 // Prevent multiple rapid clicks
+                                                                                 if (isDeleting === post._id) return;
+                                                                                 setIsDeleting(post._id);
+                                                                                 
+                                                                                 try {
+                                                                                     const response = await fetch(`/api/posts/${post._id}`, {
+                                                                                         method: 'DELETE',
+                                                                                     });
 
-                                <div className="overflow-x-auto">
-                                    <table className="w-full">
-                                        <thead>
-                                            <tr className="border-b">
-                                                <th className="text-left py-3 text-sm font-medium text-muted-foreground">Caption</th>
-                                                <th className="text-left py-3 text-sm font-medium text-muted-foreground">Mood</th>
-                                                <th className="text-left py-3 text-sm font-medium text-muted-foreground">Date</th>
-                                                <th className="text-right py-3 text-sm font-medium text-muted-foreground">Action</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {isLoadingPosts ? (
-                                                <tr>
-                                                    <td colSpan={4} className="text-center py-8">
-                                                        <Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" />
-                                                    </td>
-                                                </tr>
-                                            ) : posts.length > 0 ? (
-                                                posts.slice(0, 5).map((post, index) => (
-                                                    <tr key={post._id} className="border-b border-border/50">
-                                                        <td className="py-3 text-sm max-w-xs">
-                                                            <p className="truncate">{post.captions?.[0] || "No caption available"}</p>
-                                                        </td>
-                                                        <td className="py-3">
-                                                            <Badge 
-                                                                variant="secondary" 
-                                                                className={`${
-                                                                    index === 0 ? 'bg-green-500/10 text-green-700' :
-                                                                    index === 1 ? 'bg-blue-500/10 text-blue-700' :
-                                                                    'bg-orange-500/10 text-orange-700'
-                                                                }`}
-                                                            >
-                                                                {index === 0 ? 'Joyful' : index === 1 ? 'Reflective' : 'Adventurous'}
-                                                            </Badge>
-                                                        </td>
-                                                        <td className="py-3 text-sm text-muted-foreground">
-                                                            {format(new Date(post.createdAt || Date.now() - index * 86400000), 'yyyy-MM-dd')}
-                                                        </td>
-                                                        <td className="py-3 text-right">
-                                                            <Button 
-                                                                variant="ghost" 
-                                                                size="sm" 
-                                                                className="text-primary"
-                                                                onClick={() => {
-                                                                    // Show all captions from the post (new array structure)
-                                                                    const allCaptions = post.captions || ['No captions available'];
-                                                                    const fullCaption = allCaptions.join('\n\n• '); // Join all captions with bullet points
-                                                                    const mood = post.mood || (index === 0 ? 'Joyful' : index === 1 ? 'Reflective' : 'Adventurous');
-                                                                    const date = format(new Date(post.createdAt || Date.now() - index * 86400000), 'yyyy-MM-dd');
-                                                                    const sampleImages = [
-                                                                        'https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=400&h=300&fit=crop',
-                                                                        'https://images.unsplash.com/photo-1500522144261-ea64433bbe27?w=400&h=300&fit=crop',
-                                                                        'https://images.unsplash.com/photo-1501594907352-04cda38ebc29?w=400&h=300&fit=crop'
-                                                                    ];
-                                                                    setSelectedCaption({ 
-                                                                        caption: `• ${fullCaption}`, // Add bullet point to first caption
-                                                                        mood, 
-                                                                        date, 
-                                                                        image: post.image || sampleImages[index],
-                                                                        id: post._id
-                                                                    });
-                                                                    setIsDialogOpen(true);
-                                                                }}
-                                                            >
-                                                                <Eye className="w-4 h-4 mr-1" />
-                                                                View
-                                                            </Button>
-                                                        </td>
-                                                    </tr>
-                                                ))
-                                            ) : (
-                                                // Empty state - no captions generated yet
-                                                <tr>
-                                                    <td colSpan={4} className="py-12 text-center">
-                                                        <div className="flex flex-col items-center justify-center space-y-4">
-                                                            <div className="w-16 h-16 bg-muted/20 rounded-full flex items-center justify-center">
-                                                                <Star className="w-8 h-8 text-muted-foreground/50" />
-                                                            </div>
-                                                            <div className="space-y-2">
-                                                                <h3 className="text-lg font-medium text-muted-foreground">No captions generated yet</h3>
-                                                                <p className="text-sm text-muted-foreground/70 max-w-md">
-                                                                    Start creating amazing captions for your social media posts! Upload an image and let AI generate perfect captions for you.
-                                                                </p>
-                                                            </div>
-                                                            <Link href="/">
-                                                                <Button className="mt-4">
-                                                                    <Star className="w-4 h-4 mr-2" />
-                                                                    Generate Your First Caption
-                                                            </Button>
-                                                            </Link>
-                                                        </div>
-                                                        </td>
-                                                    </tr>
-                                            )}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </CardContent>
-                        </Card>
+                                                                                     if (response.ok) {
+                                                                                         const data = await response.json();
+                                                                                         
+                                                                                         // Always remove from frontend regardless of ImageKit status
+                                                                                         setPosts(prevPosts => prevPosts.filter(p => p._id !== post._id));
+                                                                                         setExpandedCaptionId(null);
+                                                                                         setShowDeleteConfirm(null);
+                                                                                         
+                                                                                         // Update stats
+                                                                                         setStats(prevStats => ({
+                                                                                             ...prevStats,
+                                                                                             captionsGenerated: Math.max(0, prevStats.captionsGenerated - 1),
+                                                                                             totalImages: Math.max(0, prevStats.totalImages - (post.image ? 1 : 0))
+                                                                                         }));
+                                                                                         
+                                                                                         // Show success message
+                                                                                         toast({
+                                                                                             title: "Caption deleted successfully!",
+                                                                                             description: data.message || "Image and caption have been removed from your history.",
+                                                                                         });
+                                                                                     } else {
+                                                                                         const data = await response.json();
+                                                                                         
+                                                                                         // Handle specific error cases
+                                                                                         if (data.message?.includes('ImageKit') || data.message?.includes('image')) {
+                                                                                             // ImageKit failed but database was deleted - show success with note
+                                                                                             setPosts(prevPosts => prevPosts.filter(p => p._id !== post._id));
+                                                                                             setExpandedCaptionId(null);
+                                                                                             setShowDeleteConfirm(null);
+                                                                                             
+                                                                                             // Update stats
+                                                                                             setStats(prevStats => ({
+                                                                                                 ...prevStats,
+                                                                                                 captionsGenerated: Math.max(0, prevStats.captionsGenerated - 1),
+                                                                                                 totalImages: Math.max(0, prevStats.totalImages - (post.image ? 1 : 0))
+                                                                                             }));
+                                                                                             
+                                                                                             toast({
+                                                                                                 title: "Caption deleted!",
+                                                                                                 description: "Caption removed from history. Image may still exist in storage due to technical limitations.",
+                                                                                                 variant: "default",
+                                                                                             });
+                                                                                         } else {
+                                                                                             throw new Error(data.message || 'Failed to delete caption');
+                                                                                         }
+                                                                                     }
+                                                                                 } catch (err: any) {
+                                                                                     console.error('Failed to delete caption:', err);
+                                                                                     
+                                                                                     // Show user-friendly error message
+                                                                                     toast({
+                                                                                         title: "Delete failed",
+                                                                                         description: err.message || "Failed to delete caption. Please try again.",
+                                                                                         variant: "destructive",
+                                                                                     });
+                                                                                     
+                                                                                     setShowDeleteConfirm(null);
+                                                                                 } finally {
+                                                                                     setIsDeleting(null);
+                                                                                 }
+                                                                             }}
+                                                                             disabled={isDeleting === post._id}
+                                                                         >
+                                                                             {isDeleting === post._id ? (
+                                                                                 <>
+                                                                                     <Loader2 className="w-4 h-4 animate-spin" />
+                                                                                     Deleting...
+                                                                                 </>
+                                                                             ) : (
+                                                                                 'Confirm Delete'
+                                                                             )}
+                                                                         </Button>
+                                                                     </div>
+                                                                 ) : (
+                                                                     <Button
+                                                                         size="sm"
+                                                                         variant="outline"
+                                                                         onClick={() => setShowDeleteConfirm(post._id)}
+                                                                         className="text-xs text-destructive hover:text-destructive hover:bg-destructive hover:text-destructive-foreground transition-colors"
+                                                                         disabled={isDeleting === post._id}
+                                                                         title="Delete this caption"
+                                                                     >
+                                                                         {isDeleting === post._id ? (
+                                                                             <Loader2 className="w-4 h-4 animate-spin" />
+                                                                         ) : (
+                                                                             <Trash2 className="w-4 h-4" />
+                                                                         )}
+                                                                     </Button>
+                                                                 )}
+                                                             </div>
+                                                         </div>
+                                                         
+                                                         {/* Caption Preview - Show actual caption */}
+                                                         <p className="text-sm text-muted-foreground line-clamp-2">
+                                                             {post.captions && post.captions.length > 0 && post.captions[0].trim() !== '' ? (
+                                                                 post.captions[0]
+                                                             ) : (
+                                                                 <span className="italic text-muted-foreground/70">Caption generation in progress...</span>
+                                                             )}
+                                                         </p>
+                                                     </div>
+                                                 </div>
+                                                 
+                                                 {/* Expanded Caption Details */}
+                                                 {expandedCaptionId === post._id && (
+                                                     <div id={`caption-${post._id}`} className="mt-4 pt-4 border-t">
+                                                         <div className="space-y-4">
+                                                             {/* Full Caption - Show actual caption data */}
+                                                             <div>
+                                                                 <h4 className="text-sm font-medium text-muted-foreground mb-2">Generated Caption</h4>
+                                                                 <div className="text-base leading-relaxed p-4 bg-muted/30 rounded-lg border">
+                                                                     {post.captions && post.captions.length > 0 && post.captions[0].trim() !== '' ? (
+                                                                         <div className="whitespace-pre-line text-foreground">
+                                                                             {post.captions[0]}
+                                                                         </div>
+                                                                     ) : (
+                                                                         <div className="text-muted-foreground italic">
+                                                                             Caption generation is in progress. Please wait a moment and refresh.
+                                                                         </div>
+                                                                     )}
+                                                                 </div>
+                                                             </div>
+                                                             
+                                                             {/* Metadata - Better layout */}
+                                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-3 bg-muted/20 rounded-lg">
+                                                                 <div>
+                                                                     <h4 className="text-sm font-medium text-muted-foreground mb-1">Mood</h4>
+                                                                     <Badge variant="secondary" className="text-xs">
+                                                                         {post.mood || 'Unknown'}
+                                                                     </Badge>
+                                                                 </div>
+                                                                 <div>
+                                                                     <h4 className="text-sm font-medium text-muted-foreground mb-1">Date Created</h4>
+                                                                     <p className="text-sm text-foreground">{format(new Date(post.createdAt), 'MMM dd, yyyy')}</p>
+                                                                 </div>
+                                                             </div>
+                                                             
+                                                             {/* Action Buttons - Copy button only (delete handled in main list) */}
+                                                             <div className="flex justify-end pt-4 border-t">
+                                                                 {post.captions && post.captions.length > 0 && post.captions[0].trim() !== '' && (
+                                                                     <Button 
+                                                                         className="bg-primary hover:bg-primary/90"
+                                                                         size="sm"
+                                                                         onClick={async () => {
+                                                                             // Prevent multiple rapid clicks
+                                                                             const button = document.querySelector(`[data-copy-btn="${post._id}"]`) as HTMLButtonElement;
+                                                                             if (!button || button.disabled) return;
+                                                                             
+                                                                             button.disabled = true;
+                                                                             const originalText = button.innerHTML;
+                                                                             button.innerHTML = '<Loader2 className="w-4 h-4 animate-spin" /> Copying...';
+                                                                             
+                                                                             try {
+                                                                                 await navigator.clipboard.writeText(post.captions[0] || '');
+                                                                                 // Show inline success message
+                                                                                 button.innerHTML = '<CheckCircle className="w-4 h-4" /> Copied!';
+                                                                                 button.className = 'bg-green-600 hover:bg-green-700 flex items-center gap-2';
+                                                                                 
+                                                                                 setTimeout(() => {
+                                                                                     button.innerHTML = originalText;
+                                                                                     button.disabled = false;
+                                                                                     button.className = 'bg-primary hover:bg-primary/90 flex items-center gap-2';
+                                                                                 }, 2000);
+                                                                             } catch (err) {
+                                                                                 console.error('Failed to copy caption:', err);
+                                                                                 // Show inline error message
+                                                                                 button.innerHTML = '<AlertCircle className="w-4 h-4" /> Failed';
+                                                                                 button.className = 'bg-red-600 hover:bg-green-700 flex items-center gap-2';
+                                                                                 
+                                                                                 setTimeout(() => {
+                                                                                     button.innerHTML = originalText;
+                                                                                     button.disabled = false;
+                                                                                     button.className = 'bg-primary hover:bg-primary/90 flex items-center gap-2';
+                                                                                 }, 2000);
+                                                                             }
+                                                                         }}
+                                                                         data-copy-btn={post._id}
+                                                                     >
+                                                                         <Copy className="w-4 h-4" />
+                                                                         Copy Caption
+                                                                     </Button>
+                                                                 )}
+                                                             </div>
+                                                         </div>
+                                                     </div>
+                                                 )}
+                                             </CardContent>
+                                         </Card>
+                                     ))}
+                                 </div>
+                            )}
+                        </div>
 
                         {/* Profile Deletion */}
                         <ProfileDeletion userEmail={userEmail} />
@@ -663,152 +970,51 @@ export default function ProfilePage() {
             </div>
 
             {/* Caption Viewing Dialog */}
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogContent className="max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+            {/* This dialog is no longer needed as captions are expanded inline */}
+
+            {/* Data Recovery Dialog */}
+            <Dialog open={showDataRecovery} onOpenChange={setShowDataRecovery}>
+                <DialogContent>
                     <DialogHeader>
-                        <div className="flex items-center justify-between">
-                            <DialogTitle className="text-xl font-semibold">Caption Details</DialogTitle>
-                            <DialogClose asChild>
-                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                    <X className="h-4 w-4" />
-                                    <span className="sr-only">Close</span>
-                                </Button>
-                            </DialogClose>
-                        </div>
+                        <DialogTitle>Data Recovery Request</DialogTitle>
                     </DialogHeader>
-                    
-                    {selectedCaption && (
-                        <div className="space-y-6">
-                            {/* Image */}
-                            {selectedCaption.image && (
-                                <div className="relative w-full h-64 rounded-lg overflow-hidden bg-muted">
-                                    <Image
-                                        src={selectedCaption.image}
-                                        alt="Caption image"
-                                        fill
-                                        className="object-cover"
-                                    />
-                                </div>
-                            )}
-                            
-                            {/* Caption Text */}
-                            <div className="space-y-3">
-                                <div>
-                                    <h3 className="text-sm font-medium text-muted-foreground mb-2">Generated Captions</h3>
-                                    <div className="text-base leading-relaxed p-4 bg-muted/30 rounded-lg border whitespace-pre-line">
-                                        {selectedCaption.caption}
-                                    </div>
-                                </div>
-                                
-                                {/* Metadata */}
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <h4 className="text-sm font-medium text-muted-foreground mb-1">Mood</h4>
-                                        <Badge 
-                                            variant="secondary" 
-                                            className={`${
-                                                selectedCaption.mood === 'Joyful' ? 'bg-green-500/10 text-green-700' :
-                                                selectedCaption.mood === 'Reflective' ? 'bg-blue-500/10 text-blue-700' :
-                                                'bg-orange-500/10 text-orange-700'
-                                            }`}
-                                        >
-                                            {selectedCaption.mood}
-                                        </Badge>
-                                    </div>
-                                    <div>
-                                        <h4 className="text-sm font-medium text-muted-foreground mb-1">Date Created</h4>
-                                        <p className="text-sm">{selectedCaption.date}</p>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            {/* Action Buttons */}
-                            <div className="flex justify-between pt-4 border-t">
-                                <Button 
-                                    variant="destructive" 
-                                    size="sm"
-                                    onClick={async () => {
-                                        if (window.confirm('Are you sure you want to delete this entire caption set? This will delete all 3 captions from this generation. This action cannot be undone.')) {
-                                            if (!selectedCaption.id) {
-                                                toast({
-                                                    title: "Error",
-                                                    description: "Cannot delete caption: No caption ID found.",
-                                                    variant: "destructive",
-                                                });
-                                                return;
-                                            }
-
-                                            try {
-                                                const response = await fetch(`/api/posts/${selectedCaption.id}`, {
-                                                    method: 'DELETE',
-                                                });
-
-                                                const data = await response.json();
-
-                                                if (response.ok) {
-                                                    toast({
-                                                        title: "Caption set deleted!",
-                                                        description: "All captions from this generation have been successfully deleted.",
-                                                    });
-                                                    
-                                                    setIsDialogOpen(false);
-                                                    
-                                                    // Remove the deleted post from the local state
-                                                    setPosts(prevPosts => prevPosts.filter(post => post._id !== selectedCaption.id));
-                                                    
-                                                    // Update stats (decrease the count)
-                                                    setStats(prevStats => ({
-                                                        ...prevStats,
-                                                        captionsGenerated: Math.max(0, prevStats.captionsGenerated - 1)
-                                                    }));
-                                                } else {
-                                                    toast({
-                                                        title: "Delete failed",
-                                                        description: data.message || "Failed to delete caption. Please try again.",
-                                                        variant: "destructive",
-                                                    });
-                                                }
-                                            } catch (err) {
-                                                console.error('Failed to delete caption:', err);
-                                                toast({
-                                                    title: "Network error",
-                                                    description: "Failed to delete caption due to a network error. Please try again.",
-                                                    variant: "destructive",
-                                                });
-                                            }
-                                        }
-                                    }}
-                                >
-                                    <Trash2 className="w-4 h-4 mr-2" />
-                                                    Delete Caption Set
-                                </Button>
-                                <div className="flex gap-3">
-                                    <Button 
-                                        className="bg-primary hover:bg-primary/90"
-                                        onClick={async () => {
-                                            try {
-                                                await navigator.clipboard.writeText(selectedCaption.caption);
-                                                toast({
-                                                    title: "Captions copied!",
-                                                    description: "All captions from this set have been copied to your clipboard.",
-                                                });
-                                            } catch (err) {
-                                                console.error('Failed to copy caption:', err);
-                                                toast({
-                                                    title: "Copy failed",
-                                                    description: "Failed to copy caption to clipboard.",
-                                                    variant: "destructive",
-                                                });
-                                            }
-                                        }}
-                                    >
-                                        <Copy className="w-4 h-4 mr-2" />
-                                                        Copy All Captions
-                                    </Button>
-                                </div>
-                            </div>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid gap-2">
+                            <label htmlFor="recoveryReason" className="text-sm font-medium">Reason for Recovery</label>
+                            <select
+                                id="recoveryReason"
+                                value={recoveryReason}
+                                onChange={(e) => setRecoveryReason(e.target.value)}
+                                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                <option value="">Select a reason</option>
+                                <option value="Account Access">Account Access</option>
+                                <option value="Data Loss">Data Loss</option>
+                                <option value="Other">Other</option>
+                            </select>
                         </div>
-                    )}
+                        <div className="grid gap-2">
+                            <label htmlFor="recoveryDetails" className="text-sm font-medium">Details (Optional)</label>
+                            <textarea
+                                id="recoveryDetails"
+                                value={recoveryDetails}
+                                onChange={(e) => setRecoveryDetails(e.target.value)}
+                                rows={4}
+                                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            />
+                        </div>
+                        <div className="grid gap-2">
+                            <label htmlFor="contactEmail" className="text-sm font-medium">Contact Email (Optional)</label>
+                            <input
+                                type="email"
+                                id="contactEmail"
+                                value={contactEmail}
+                                onChange={(e) => setContactEmail(e.target.value)}
+                                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            />
+                        </div>
+                    </div>
+                    <Button onClick={handleDataRecoveryRequest} className="w-full">Submit Recovery Request</Button>
                 </DialogContent>
             </Dialog>
         </div>

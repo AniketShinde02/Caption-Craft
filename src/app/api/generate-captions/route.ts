@@ -2,10 +2,23 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { generateCaptions } from '@/ai/flows/generate-caption';
+import { isAIConfigured } from '@/ai/genkit';
 import { getClientIP } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
   try {
+    // Check if AI service is configured
+    if (!isAIConfigured()) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          message: 'AI service is not properly configured. Please contact support.',
+          type: 'ai_config_error'
+        },
+        { status: 503 }
+      );
+    }
+
     // Get session for authenticated users
     const session = await getServerSession(authOptions);
     
@@ -59,6 +72,18 @@ export async function POST(request: NextRequest) {
           type: 'rate_limit_error'
         },
         { status: 429 } // Too Many Requests
+      );
+    }
+
+    // Check if it's an AI configuration error
+    if (error.message?.includes('AI service is not properly configured')) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          message: 'AI service is temporarily unavailable. Please try again later.',
+          type: 'ai_service_error'
+        },
+        { status: 503 }
       );
     }
 

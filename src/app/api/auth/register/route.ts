@@ -4,6 +4,8 @@ import dbConnect from '@/lib/db';
 import User from '@/models/User';
 import bcrypt from 'bcryptjs';
 import { isCredentialsBlocked, getClientIP } from '@/lib/rate-limit';
+import { sendWelcomeEmail } from '@/lib/mail';
+import crypto from 'crypto';
 
 export const dynamic = 'force-dynamic';
 
@@ -54,11 +56,38 @@ export async function POST(req: NextRequest) {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Generate unsubscribe token for promotional emails
+    const unsubscribeToken = crypto.randomBytes(32).toString('hex');
+
     const user = await User.create({
       email,
       password: hashedPassword,
       passwordHistory: [],
+      unsubscribeToken,
+      emailPreferences: {
+        promotional: true,
+        welcome: true,
+        requestConfirmations: true
+      }
     });
+    
+    // Send welcome email
+    try {
+      await sendWelcomeEmail({
+        name: email.split('@')[0], // Use email prefix as name
+        email: user.email,
+        username: email.split('@')[0]
+      });
+      
+      // Mark welcome email as sent
+      user.welcomeEmailSent = true;
+      await user.save();
+      
+      console.log('📧 Welcome email sent to:', user.email);
+    } catch (emailError) {
+      console.error('📧 Failed to send welcome email:', emailError);
+      // Don't fail registration if email fails
+    }
     
     return NextResponse.json({ success: true, data: { email: user.email } }, { status: 201 });
   } catch (error: any) {

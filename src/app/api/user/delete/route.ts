@@ -7,6 +7,8 @@ import DeletedProfile from '@/models/DeletedProfile';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { blockCredentials, getClientIP } from '@/lib/rate-limit';
+import { batchMoveImagesToArchive } from '@/lib/imagekit-utils';
+import { sendRequestConfirmationEmail } from '@/lib/mail';
 
 export async function DELETE(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -43,6 +45,24 @@ export async function DELETE(req: NextRequest) {
     // Fetch all user's posts/captions
     const userPosts = await Post.find({ user: userId });
 
+    // 📁 Archive images to ImageKit before deleting posts
+    const imageUrls = userPosts
+      .map(post => post.image)
+      .filter(Boolean) as string[]; // Filter out undefined/null values
+
+    let archiveResult: { success: number; failed: number; archivedUrls: string[]; errors: Array<{ url: string; error: string }> } = { 
+      success: 0, 
+      failed: 0, 
+      archivedUrls: [], 
+      errors: [] 
+    };
+    
+    if (imageUrls.length > 0) {
+      console.log(`📁 Starting image archiving for user ${userId}: ${imageUrls.length} images`);
+      archiveResult = await batchMoveImagesToArchive(imageUrls, userId);
+      console.log(`📊 Image archiving complete: ${archiveResult.success} success, ${archiveResult.failed} failed`);
+    }
+
     // Prepare archived user data (exclude sensitive fields like password)
     const userDataToArchive = {
       email: user.email,
@@ -54,15 +74,23 @@ export async function DELETE(req: NextRequest) {
       emailVerified: user.emailVerified,
     };
 
-    // Prepare posts data for archiving
-    const postsDataToArchive = userPosts.map(post => ({
-      _id: post._id.toString(),
-      caption: post.caption,
-      image: post.image,
-      createdAt: post.createdAt,
-    }));
+    // Prepare posts data for archiving with archived image URLs
+    const postsDataToArchive = userPosts.map(post => {
+      const originalImageUrl = post.image;
+      const archivedImageUrl = archiveResult.archivedUrls.find((url: string) => 
+        url.includes(post._id.toString()) || url.includes(post.image?.split('/').pop() || '')
+      );
 
-    // Create archived profile record
+      return {
+        _id: post._id.toString(),
+        caption: post.captions?.[0] || 'No caption', // Handle the new captions array structure
+        image: originalImageUrl,
+        archivedImageUrl: archivedImageUrl || undefined,
+        createdAt: post.createdAt,
+      };
+    });
+
+    // Create archived profile record with archive metadata
     const archivedProfile = new DeletedProfile({
       originalUserId: userId,
       userData: userDataToArchive,
@@ -71,11 +99,42 @@ export async function DELETE(req: NextRequest) {
       deletedBy: userId,
       ipAddress,
       userAgent,
+      archiveMetadata: {
+        totalImages: imageUrls.length,
+        successfullyArchived: archiveResult.success,
+        failedArchives: archiveResult.failed,
+        archiveErrors: archiveResult.errors,
+        archivedAt: new Date(),
+      },
     });
 
     await archivedProfile.save();
 
-    // Delete all user's posts
+    // Send confirmation email to user if enabled (before deletion)
+    if (user.emailPreferences?.requestConfirmations) {
+      try {
+        await sendRequestConfirmationEmail({
+          name: user.name || user.username || user.email.split('@')[0],
+          email: user.email,
+          requestType: 'profile_deletion',
+          requestId: archivedProfile._id.toString(),
+          estimatedTime: 'Immediate',
+          nextSteps: [
+            'Your account has been successfully deleted',
+            'All your data has been archived securely',
+            'Your images have been moved to our archive system',
+            'You can request data recovery within 30 days if needed',
+            'Your email has been blocked from re-registration for security'
+          ]
+        });
+        console.log('📧 Profile deletion confirmation email sent to:', user.email);
+      } catch (emailError) {
+        console.error('📧 Failed to send profile deletion confirmation email:', emailError);
+        // Don't fail the deletion if email fails
+      }
+    }
+
+    // Delete all user's posts (images are already archived)
     await Post.deleteMany({ user: userId });
 
     // Delete user account
@@ -91,11 +150,17 @@ export async function DELETE(req: NextRequest) {
 
     // Log the deletion for administrative purposes
     console.log(`User account deleted: ${user.email} (ID: ${userId}) at ${new Date().toISOString()}`);
+    console.log(`📁 Images archived: ${archiveResult.success}/${imageUrls.length} to ImageKit archive folder`);
 
     return NextResponse.json({
       success: true,
-      message: 'Account deleted successfully. Your data has been archived according to our data retention policy.',
+      message: 'Account deleted successfully. Your data and images have been archived according to our data retention policy.',
       archiveId: archivedProfile._id,
+      imagesArchived: {
+        total: imageUrls.length,
+        successful: archiveResult.success,
+        failed: archiveResult.failed,
+      },
     }, { status: 200 });
 
   } catch (error: any) {
@@ -148,6 +213,7 @@ export async function POST(req: Request) {
         accountEmail: user.email,
         username: user.username || 'Not set',
         totalCaptions: userPosts.length,
+        totalImages: userPosts.filter(post => post.image).length, // Count posts with images
         accountCreated: user.createdAt,
         lastActivity: userPosts.length > 0 ? userPosts[0].createdAt : user.createdAt,
       },

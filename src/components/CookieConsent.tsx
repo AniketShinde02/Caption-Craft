@@ -15,13 +15,11 @@ import {
 } from '@/components/ui/dialog';
 import { Cookie, Settings, X, Shield, Info } from 'lucide-react';
 import Link from 'next/link';
-
-interface CookiePreferences {
-  necessary: boolean;
-  analytics: boolean;
-  marketing: boolean;
-  functional: boolean;
-}
+import { 
+  CookiePreferences, 
+  trackUserAction, 
+  personalizeExperience 
+} from '@/lib/cookie-utils';
 
 export default function CookieConsent() {
   const [showBanner, setShowBanner] = useState(false);
@@ -45,11 +43,55 @@ export default function CookieConsent() {
       try {
         const savedPreferences = JSON.parse(localStorage.getItem('cookie-preferences') || '{}');
         setPreferences(prev => ({ ...prev, ...savedPreferences }));
+        
+        // Apply preferences immediately
+        applyPreferences(savedPreferences);
       } catch (error) {
         console.error('Error loading cookie preferences:', error);
       }
     }
   }, []);
+
+  const applyPreferences = (prefs: CookiePreferences) => {
+    // Apply analytics consent
+    if (prefs.analytics) {
+      console.log('✅ Analytics cookies enabled');
+      // Initialize analytics here
+      initializeAnalytics();
+    }
+    
+    // Apply marketing consent
+    if (prefs.marketing) {
+      console.log('✅ Marketing cookies enabled');
+      // Initialize marketing pixels here
+      initializeMarketingPixels();
+    }
+    
+    // Apply functional consent
+    if (prefs.functional) {
+      console.log('✅ Functional cookies enabled');
+      // Load user preferences and personalize
+      personalizeExperience();
+    }
+  };
+
+  const initializeAnalytics = () => {
+    // Initialize your analytics service here
+    // Example: Google Analytics, Mixpanel, etc.
+    console.log('📊 Initializing analytics...');
+    
+    // Track that user accepted analytics
+    trackUserAction('cookie_consent_analytics_accepted');
+  };
+
+  const initializeMarketingPixels = () => {
+    // Initialize marketing pixels here
+    // Example: Facebook Pixel, Google Ads, etc.
+    console.log('📢 Initializing marketing pixels...');
+    
+    // Track that user accepted marketing cookies
+    trackUserAction('cookie_consent_marketing_accepted');
+  };
 
   const acceptAll = () => {
     const allAccepted = {
@@ -61,6 +103,9 @@ export default function CookieConsent() {
     setPreferences(allAccepted);
     savePreferences(allAccepted);
     setShowBanner(false);
+    
+    // Track the acceptance
+    trackUserAction('cookie_consent_all_accepted');
   };
 
   const acceptNecessary = () => {
@@ -73,28 +118,28 @@ export default function CookieConsent() {
     setPreferences(necessaryOnly);
     savePreferences(necessaryOnly);
     setShowBanner(false);
+    
+    // Track the acceptance
+    trackUserAction('cookie_consent_necessary_only_accepted');
   };
 
   const saveCustomPreferences = () => {
     savePreferences(preferences);
     setShowBanner(false);
     setShowSettings(false);
+    
+    // Track the custom preferences
+    trackUserAction('cookie_consent_custom_saved', { preferences });
   };
 
   const savePreferences = (prefs: CookiePreferences) => {
     localStorage.setItem('cookie-consent', 'true');
     localStorage.setItem('cookie-preferences', JSON.stringify(prefs));
     
-    // Here you would typically integrate with your analytics/tracking services
-    // For example:
-    // if (prefs.analytics) {
-    //   initializeAnalytics();
-    // }
-    // if (prefs.marketing) {
-    //   initializeMarketingPixels();
-    // }
+    // Apply the preferences immediately
+    applyPreferences(prefs);
     
-    console.log('Cookie preferences saved:', prefs);
+    console.log('🍪 Cookie preferences saved and applied:', prefs);
   };
 
   const togglePreference = (key: keyof CookiePreferences) => {
@@ -219,7 +264,7 @@ export default function CookieConsent() {
               </div>
               <p className="text-sm text-muted-foreground ml-6">
                 Help us understand how visitors interact with our website by collecting and reporting information anonymously.
-                This includes Google Analytics and similar services.
+                This includes Google Analytics and similar services. <strong>Enabling this helps us improve your experience!</strong>
               </p>
             </div>
 
@@ -239,7 +284,7 @@ export default function CookieConsent() {
               </div>
               <p className="text-sm text-muted-foreground ml-6">
                 Used to track visitors across websites to display relevant advertisements and measure ad campaign effectiveness.
-                This includes social media pixels and advertising networks.
+                This includes social media pixels and advertising networks. <strong>Enabling this helps us show you relevant content!</strong>
               </p>
             </div>
 
@@ -259,7 +304,7 @@ export default function CookieConsent() {
               </div>
               <p className="text-sm text-muted-foreground ml-6">
                 Enable enhanced functionality like remembering your preferences, language settings, 
-                and providing personalized features.
+                and providing personalized features. <strong>Enabling this gives you a better, personalized experience!</strong>
               </p>
             </div>
 

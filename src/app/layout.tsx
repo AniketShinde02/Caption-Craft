@@ -13,7 +13,7 @@ import { Providers } from '@/components/providers';
 import { AuthModal } from '@/components/auth-modal';
 import ServerHeader from '@/components/server-header';
 import Footer from '@/components/footer';
-import CookieConsent from '@/components/CookieConsent';
+
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { Inter } from 'next/font/google';
@@ -24,29 +24,35 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'Caption Craft',
-  description: 'Generate Viral Captions in Seconds.',
+  title: 'CaptionCraft',
+  description: 'Generate Viral Captions in Seconds',
+};
+
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} font-sans antialiased`}>
+      <body className={`${inter.variable} font-sans antialiased min-h-screen flex flex-col bg-background text-foreground`}>
         <Providers>
-          {/* <SessionValidator /> */}
-          <AuthModal />
           <ServerHeader />
-          {children}
+          <main className="flex-grow w-full overflow-x-hidden">
+            {children}
+          </main>
           <Footer />
+          <AuthModal />
           <Toaster />
-          <CookieConsent />
-          <Analytics />
-          <SpeedInsights />
         </Providers>
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );

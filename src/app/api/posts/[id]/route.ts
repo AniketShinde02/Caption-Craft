@@ -49,19 +49,36 @@ export async function DELETE(
     }
 
     // Delete associated image from ImageKit if it exists
+    let imageKitStatus = 'not_applicable';
     if (post.image) {
       console.log(`🗑️ Deleting image from ImageKit: ${post.image}`);
-      await deleteImageFromImageKitByUrl(post.image);
+      try {
+        const imageKitDeleted = await deleteImageFromImageKitByUrl(post.image);
+        imageKitStatus = imageKitDeleted ? 'success' : 'failed';
+        if (!imageKitDeleted) {
+          console.warn(`⚠️ ImageKit deletion failed for: ${post.image}`);
+        }
+      } catch (error) {
+        console.error(`❌ ImageKit deletion error for: ${post.image}`, error);
+        imageKitStatus = 'error';
+      }
     }
 
-    // Delete the caption
+    // Delete the caption from database
     await Post.findByIdAndDelete(id);
+
+    // Return appropriate message based on ImageKit status
+    let message = 'Caption deleted successfully';
+    if (imageKitStatus === 'failed' || imageKitStatus === 'error') {
+      message = 'Caption deleted successfully. Note: Image may still exist in storage due to technical limitations.';
+    }
 
     return NextResponse.json(
       { 
         success: true, 
-        message: 'Caption set deleted successfully',
-        deletedId: id
+        message,
+        deletedId: id,
+        imageKitStatus
       }, 
       { status: 200 }
     );
@@ -75,6 +92,26 @@ export async function DELETE(
         { success: false, message: 'Invalid caption ID format' }, 
         { status: 400 }
       );
+    }
+
+    // Handle ImageKit-specific errors
+    if (error.message?.includes('ImageKit') || error.message?.includes('image')) {
+      console.warn('ImageKit deletion failed, but continuing with database cleanup');
+      // Try to delete from database even if ImageKit fails
+      try {
+        await Post.findByIdAndDelete(id);
+        return NextResponse.json(
+          { 
+            success: true, 
+            message: 'Caption deleted successfully. Note: Image may still exist in storage due to technical limitations.',
+            deletedId: id,
+            imageKitStatus: 'failed'
+          }, 
+          { status: 200 }
+        );
+      } catch (dbError) {
+        console.error('Database deletion also failed:', dbError);
+      }
     }
 
     return NextResponse.json(

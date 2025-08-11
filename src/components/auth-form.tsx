@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { signIn } from "next-auth/react";
-import { Loader2, LogIn, UserPlus, Eye, EyeOff, AlertCircle, CheckCircle } from "lucide-react";
+import { Loader2, LogIn, UserPlus, Eye, EyeOff } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
@@ -39,7 +39,7 @@ const signInSchema = z.object({
   password: z.string().min(1, { message: "Password is required." }),
 });
 
-export function AuthForm() {
+export function AuthForm({ initialEmail = '' }: { initialEmail?: string }) {
   const [isLoading, setIsLoading] = useState(false);
   const [showSignInPassword, setShowSignInPassword] = useState(false);
   const [showSignUpPassword, setShowSignUpPassword] = useState(false);
@@ -65,7 +65,7 @@ export function AuthForm() {
   const signUpForm = useForm<z.infer<typeof signUpSchema>>({
     resolver: zodResolver(signUpSchema),
     defaultValues: {
-      email: "",
+      email: initialEmail,
       password: "",
     },
   });
@@ -73,10 +73,18 @@ export function AuthForm() {
   const signInForm = useForm<z.infer<typeof signInSchema>>({
     resolver: zodResolver(signInSchema),
     defaultValues: {
-      email: "",
+      email: initialEmail,
       password: "",
     },
   });
+
+  // Update form values when initialEmail changes
+  useEffect(() => {
+    if (initialEmail) {
+      signInForm.setValue('email', initialEmail);
+      signUpForm.setValue('email', initialEmail);
+    }
+  }, [initialEmail, signInForm, signUpForm]);
 
   async function onSignUp(values: z.infer<typeof signUpSchema>) {
     setIsLoading(true);
@@ -115,6 +123,44 @@ export function AuthForm() {
     setSignInError('');
     
     try {
+      // First check if the user is blocked
+      const blockCheckResponse = await fetch('/api/auth/check-blocked', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: values.email }),
+      });
+
+      if (blockCheckResponse.ok) {
+        const blockData = await blockCheckResponse.json();
+        if (blockData.blocked) {
+          const reason = blockData.reason || 'suspicious_activity';
+          const hoursRemaining = blockData.hoursRemaining || 0;
+          
+          let reasonMessage = '';
+          switch (reason) {
+            case 'account_deletion_abuse':
+              reasonMessage = 'Account deletion abuse detected';
+              break;
+            case 'rate_limit_violation':
+              reasonMessage = 'Rate limit violations';
+              break;
+            case 'suspicious_activity':
+              reasonMessage = 'Suspicious activity detected';
+              break;
+            case 'manual_block':
+              reasonMessage = 'Account manually blocked by administrators';
+              break;
+            default:
+              reasonMessage = 'Account temporarily blocked';
+          }
+          
+          throw new Error(
+            `🚫 Account blocked: ${reasonMessage}. Please try again in ${hoursRemaining} hours.`
+          );
+        }
+      }
+
+      // If not blocked, proceed with sign-in
       const result = await signIn("credentials", {
         redirect: false,
         email: values.email,
@@ -152,10 +198,22 @@ export function AuthForm() {
       });
       
       if (res.ok) {
-        setForgotPasswordSuccess('Reset link sent! Check your email for the password reset link.');
+        setForgotPasswordSuccess('Reset link sent! Check your email for the password reset link. Please check your spam folder if you don\'t see it.');
       } else {
         const d = await res.json().catch(() => ({}));
-        throw new Error(d.message || 'Failed to send reset link');
+        
+        // Handle specific error cases
+        if (res.status === 429) {
+          if (d.message.includes('daily limit')) {
+            setForgotPasswordError('You have reached the maximum password reset requests for today. Please try again tomorrow.');
+          } else if (d.message.includes('location')) {
+            setForgotPasswordError('Too many reset attempts from this location. Please try again later.');
+          } else {
+            setForgotPasswordError('Too many reset attempts. Please wait before requesting another reset link.');
+          }
+        } else {
+          throw new Error(d.message || 'Failed to send reset link');
+        }
       }
     } catch (e: any) {
       setForgotPasswordError(e.message);
@@ -164,103 +222,99 @@ export function AuthForm() {
 
   return (
     <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-      <TabsList className="grid w-full grid-cols-2 bg-muted">
-        <TabsTrigger value="sign-in">Sign In</TabsTrigger>
-        <TabsTrigger value="sign-up">Sign Up</TabsTrigger>
+      {/* Tabs List - Mobile First */}
+      <TabsList className="grid w-full grid-cols-2 bg-muted h-12 sm:h-10">
+        <TabsTrigger value="sign-in" className="text-sm sm:text-base">Sign In</TabsTrigger>
+        <TabsTrigger value="sign-up" className="text-sm sm:text-base">Sign Up</TabsTrigger>
       </TabsList>
       
-      <TabsContent value="sign-in">
+      {/* Sign In Tab - Mobile First */}
+      <TabsContent value="sign-in" className="mt-4 sm:mt-6">
         <Card className="bg-transparent border-none shadow-none">
-          <CardContent className="p-0 pt-6">
+          <CardContent className="p-0">
             <Form {...signInForm}>
               <form
                 onSubmit={signInForm.handleSubmit(onSignIn)}
-                className="space-y-4"
+                className="space-y-4 sm:space-y-5"
               >
                 <FormField
                   control={signInForm.control}
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email</FormLabel>
+                      <FormLabel className="text-sm sm:text-base">Email</FormLabel>
                       <FormControl>
                         <Input
                           type="email"
                           placeholder="you@example.com"
-                          className="bg-background/80"
+                          className="bg-background/80 h-12 sm:h-10 text-sm sm:text-base"
                           {...field}
                         />
                       </FormControl>
-                      <FormMessage />
+                      <FormMessage className="text-xs sm:text-sm" />
                     </FormItem>
                   )}
                 />
+                
                 <FormField
                   control={signInForm.control}
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Password</FormLabel>
+                      <FormLabel className="text-sm sm:text-base">Password</FormLabel>
                       <FormControl>
                         <div className="relative">
                           <Input
                             type={showSignInPassword ? "text" : "password"}
                             placeholder="••••••••"
-                            className="bg-background/80 pr-10"
+                            className="bg-background/80 pr-12 h-12 sm:h-10 text-sm sm:text-base"
                             {...field}
                           />
                           <button
                             type="button"
                             onClick={() => setShowSignInPassword(!showSignInPassword)}
-                            className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground"
+                            className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground transition-colors"
                           >
                             {showSignInPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                           </button>
                         </div>
                       </FormControl>
-                      <FormMessage />
+                      <FormMessage className="text-xs sm:text-sm" />
                     </FormItem>
                   )}
                 />
                 
+                {/* Forgot Password Link - Mobile First */}
                 <div className="text-right">
                   <button
                     type="button"
-                    className="text-sm text-muted-foreground hover:text-primary"
+                    className="text-sm text-muted-foreground hover:text-primary transition-colors py-2"
                     onClick={handleForgotPassword}
                   >
                     Forgot Password?
                   </button>
                 </div>
 
-                {/* Error Messages */}
+                {/* Error Messages - Mobile First */}
                 {signInError && (
-                  <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 text-destructive flex-shrink-0" />
-                    <p className="text-sm text-destructive">{signInError}</p>
-                  </div>
+                  <p className="text-sm text-destructive text-center p-2 bg-destructive/10 rounded-md">{signInError}</p>
                 )}
 
                 {forgotPasswordError && (
-                  <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 text-destructive flex-shrink-0" />
-                    <p className="text-sm text-destructive">{forgotPasswordError}</p>
-                  </div>
+                  <p className="text-sm text-destructive text-center p-2 bg-destructive/10 rounded-md">{forgotPasswordError}</p>
                 )}
 
                 {forgotPasswordSuccess && (
-                  <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20 flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
-                    <p className="text-sm text-green-500">{forgotPasswordSuccess}</p>
-                  </div>
+                  <p className="text-sm text-green-500 text-center p-2 bg-green-500/10 rounded-md">{forgotPasswordSuccess}</p>
                 )}
 
-                <Button type="submit" disabled={isLoading} className="w-full">
+                {/* Sign In Button - Mobile First */}
+                <Button type="submit" disabled={isLoading} className="w-full h-12 sm:h-11 text-base sm:text-sm">
                   {isLoading ? (
-                    <Loader2 className="animate-spin" />
+                    <Loader2 className="animate-spin h-5 w-5" />
                   ) : (
                     <>
-                      <LogIn className="mr-2" /> Sign In
+                      <LogIn className="mr-2 h-4 w-4" /> Sign In
                     </>
                   )}
                 </Button>
@@ -270,81 +324,78 @@ export function AuthForm() {
         </Card>
       </TabsContent>
       
-      <TabsContent value="sign-up">
+      {/* Sign Up Tab - Mobile First */}
+      <TabsContent value="sign-up" className="mt-4 sm:mt-6">
         <Card className="bg-transparent border-none shadow-none">
-          <CardContent className="p-0 pt-6">
+          <CardContent className="p-0">
             <Form {...signUpForm}>
               <form
                 onSubmit={signUpForm.handleSubmit(onSignUp)}
-                className="space-y-4"
+                className="space-y-4 sm:space-y-5"
               >
                 <FormField
                   control={signUpForm.control}
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email</FormLabel>
+                      <FormLabel className="text-sm sm:text-base">Email</FormLabel>
                       <FormControl>
                         <Input
                           type="email"
                           placeholder="you@example.com"
-                          className="bg-background/80"
+                          className="bg-background/80 h-12 sm:h-10 text-sm sm:text-base"
                           {...field}
                         />
                       </FormControl>
-                      <FormMessage />
+                      <FormMessage className="text-xs sm:text-sm" />
                     </FormItem>
                   )}
                 />
+                
                 <FormField
                   control={signUpForm.control}
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Password</FormLabel>
+                      <FormLabel className="text-sm sm:text-base">Password</FormLabel>
                       <FormControl>
                         <div className="relative">
                           <Input
                             type={showSignUpPassword ? "text" : "password"}
                             placeholder="••••••••"
-                            className="bg-background/80 pr-10"
+                            className="bg-background/80 pr-12 h-12 sm:h-10 text-sm sm:text-base"
                             {...field}
                           />
                           <button
                             type="button"
                             onClick={() => setShowSignUpPassword(!showSignUpPassword)}
-                            className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground"
+                            className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground transition-colors"
                           >
                             {showSignUpPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                           </button>
                         </div>
                       </FormControl>
-                      <FormMessage />
+                      <FormMessage className="text-xs sm:text-sm" />
                     </FormItem>
                   )}
                 />
 
-                {/* Error/Success Messages */}
+                {/* Error/Success Messages - Mobile First */}
                 {signUpError && (
-                  <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 text-destructive flex-shrink-0" />
-                    <p className="text-sm text-destructive">{signUpError}</p>
-                  </div>
+                  <p className="text-sm text-destructive text-center p-2 bg-destructive/10 rounded-md">{signUpError}</p>
                 )}
 
                 {signUpSuccess && (
-                  <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20 flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
-                    <p className="text-sm text-green-500">{signUpSuccess}</p>
-                  </div>
+                  <p className="text-sm text-green-500 text-center p-2 bg-green-500/10 rounded-md">{signUpSuccess}</p>
                 )}
 
-                <Button type="submit" disabled={isLoading} className="w-full">
+                {/* Sign Up Button - Mobile First */}
+                <Button type="submit" disabled={isLoading} className="w-full h-12 sm:h-11 text-base sm:text-sm">
                   {isLoading ? (
-                    <Loader2 className="animate-spin" />
+                    <Loader2 className="animate-spin h-5 w-5" />
                   ) : (
                     <>
-                      <UserPlus className="mr-2" /> Sign Up
+                      <UserPlus className="mr-2 h-4 w-4" /> Sign Up
                     </>
                   )}
                 </Button>

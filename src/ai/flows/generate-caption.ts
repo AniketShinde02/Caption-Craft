@@ -9,7 +9,7 @@
  * - GenerateCaptionsOutput - The return type for the generateCaptionsOutput function.
  */
 
-import {ai} from '@/ai/genkit';
+import {ai, isAIConfigured} from '@/ai/genkit';
 import {z} from 'genkit';
 import dbConnect from '@/lib/db';
 import { Types } from 'mongoose';
@@ -28,16 +28,21 @@ const GenerateCaptionsInputSchema = z.object({
   userId: z.string().optional().describe("The ID of the user generating the captions."),
   ipAddress: z.string().optional().describe("The IP address of the user (for rate limiting)."),
 });
+
 export type GenerateCaptionsInput = z.infer<typeof GenerateCaptionsInputSchema>;
 
 const GenerateCaptionsOutputSchema = z.object({
-  captions: z
-    .array(z.string())
-    .describe('An array of 3 generated captions for the social media post.'),
+  captions: z.array(z.string()).describe('An array of three unique, engaging captions.'),
 });
+
 export type GenerateCaptionsOutput = z.infer<typeof GenerateCaptionsOutputSchema>;
 
 export async function generateCaptions(input: GenerateCaptionsInput): Promise<GenerateCaptionsOutput> {
+  // Check if AI is properly configured
+  if (!isAIConfigured()) {
+    throw new Error('AI service is not properly configured. Please check your environment variables.');
+  }
+  
   return generateCaptionsFlow(input);
 }
 
@@ -48,9 +53,9 @@ const generateCaptionsPrompt = ai.definePrompt({
   prompt: `You are an expert social media content creator and image analyst specializing in viral captions for Gen Z audiences.
 
   STEP 1: ANALYZE THE IMAGE
-  Look at this image URL and analyze its visual content: {{{imageUrl}}}
+  You have been provided with an image. Analyze its visual content carefully.
   
-  IMPORTANT: You MUST actually view and analyze the image at this URL. Do not generate generic captions.
+  IMPORTANT: You MUST analyze the actual image content you see. Do not generate generic captions.
   
   Describe what you actually see:
   - What is the main subject? (person, animal, object, landscape, etc.)
@@ -164,13 +169,143 @@ const generateCaptionsFlow = ai.defineFlow(
 
     console.log(`✅ Rate limit check passed. Remaining: ${rateLimitResult.remaining}/${rateLimitConfig.MAX_GENERATIONS}`);
 
-    // First, generate the captions with the AI
-    console.log('🤖 Sending request to AI with image for analysis...');
-    const {output} = await generateCaptionsPrompt(input);
+    // 🤖 CRITICAL FIX: Use Genkit's proper image analysis method
+    console.log('🤖 Sending image to AI for analysis using Genkit...');
+    console.log('🔑 API Key check:', !!process.env.GOOGLE_API_KEY ? 'Present' : 'Missing');
+    console.log('🔑 API Key length:', process.env.GOOGLE_API_KEY?.length || 0);
     
-    console.log('✨ AI Generated Captions:', output?.captions ? `${output.captions.length} captions generated` : 'No captions generated');
+    let output: any; // Declare output in outer scope
+    
+    try {
+      // Use Genkit's generate method with proper image handling for Gemini
+      const result = await ai.generate([
+      {
+        text: `You are an expert social media content creator and image analyst specializing in viral captions for Gen Z audiences.
 
-    if (output && output.captions) {
+        STEP 1: ANALYZE THE IMAGE
+        You have been provided with an image. Analyze its visual content carefully.
+        
+        IMPORTANT: You MUST analyze the actual image content you see. Do not generate generic captions.
+        
+        Describe what you actually see:
+        - What is the main subject? (person, animal, object, landscape, etc.)
+        - What are they doing or what's happening?
+        - What's the setting/location/background?
+        - What colors dominate the image?
+        - What's the lighting like? (bright, dark, golden hour, etc.)
+        - What's the composition and style?
+        - What emotions or mood does the image convey?
+        - Are there any text, brands, or notable details?
+        - What's the overall aesthetic and vibe?
+
+        STEP 2: MATCH THE MOOD
+        Target mood: ${input.mood}
+        
+        ${input.description ? `Additional context provided: ${input.description}` : ''}
+
+        STEP 3: CREATE CAPTIONS
+        Generate exactly 3 unique, viral-worthy captions that:
+        
+        ✅ MUST directly reference what you see in the image (colors, objects, people, setting, etc.)
+        ✅ MUST match the specified mood/tone perfectly
+        ✅ MUST be engaging and shareable for TikTok, Instagram, and Snapchat
+        ✅ MUST include relevant emojis (2-4 per caption)
+        ✅ MUST include trending hashtags (3-5 per caption)
+        ✅ MUST be concise (under 150 characters each)
+        ✅ MUST feel authentic and relatable to Gen Z
+        
+        Each caption should have a different approach:
+        - Caption 1: Direct and descriptive about what's in the image
+        - Caption 2: Emotional/relatable angle based on the image content
+        - Caption 3: Trendy/playful with popular phrases/slang
+        
+        CRITICAL REQUIREMENTS:
+        - Your captions MUST prove you analyzed the image by mentioning specific visual elements
+        - Reference actual colors, objects, people, actions, or settings you see
+        - DO NOT use generic captions that could apply to any image
+        - Each caption should feel like it was written by someone who actually saw this specific image
+        
+        EXAMPLES of what to reference:
+        - "That golden sunset hitting different 🌅" (if you see a sunset)
+        - "Coffee shop vibes with that cozy lighting ☕" (if you see a coffee shop)
+        - "This blue dress is everything 💙" (if you see someone in a blue dress)
+        - "Beach waves and good vibes 🌊" (if you see a beach scene)
+        
+        Return exactly 3 captions in an array format.`
+      },
+      {
+        media: { url: input.imageUrl }
+      }
+      ]);
+      
+      output = result.output; // Assign to outer scope variable
+      
+      console.log('🔍 Full AI Result:', result);
+      console.log('🔍 Output object:', output);
+      console.log('✨ AI Generated Captions:', output?.text ? 'Captions generated' : 'No captions generated');
+    } catch (error) {
+      console.error('❌ AI Generation Error:', error);
+      console.error('❌ Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
+      throw new Error(`AI generation failed: ${error.message}`);
+    }
+
+    // Parse the AI response to extract captions
+    console.log('📝 Raw AI Output:', output);
+    console.log('📝 AI Output Type:', typeof output);
+    console.log('📝 Is Array?', Array.isArray(output));
+    
+    let captions: string[] = [];
+    
+    // Check if output is already an array of captions (which it is!)
+    if (Array.isArray(output)) {
+      captions = output;
+      console.log('🎯 Direct array output detected, using as captions');
+    } else if (output?.text) {
+      // Fallback: if output has text property, try to parse it
+      try {
+        const parsed = JSON.parse(output.text);
+        if (Array.isArray(parsed)) {
+          captions = parsed;
+        } else {
+          const lines = output.text.split('\n').filter((line: string) => line.trim());
+          captions = lines.slice(0, 3);
+        }
+      } catch (error) {
+        const lines = output.text.split('\n').filter((line: string) => line.trim());
+        captions = lines.slice(0, 3);
+      }
+    }
+
+    // Ensure we have exactly 3 captions
+    if (captions.length < 3) {
+      // Generate additional captions if needed
+      const additionalPrompt = `Generate ${3 - captions.length} more captions to complete the set. Make sure they are unique and follow the same style as the previous ones.`;
+      const additionalResponse = await ai.generate([
+        { text: additionalPrompt },
+        { media: { url: input.imageUrl } }
+      ]);
+      
+      if (additionalResponse.output?.text) {
+        const additionalLines = additionalResponse.output.text.split('\n').filter((line: string) => line.trim());
+        captions = [...captions, ...additionalLines].slice(0, 3);
+      }
+    }
+
+    // Ensure we have exactly 3 captions, pad if necessary
+    while (captions.length < 3) {
+      captions.push(`Caption ${captions.length + 1} - Please try again with a different image.`);
+    }
+
+    // Limit to exactly 3 captions
+    captions = captions.slice(0, 3);
+
+    console.log(`✅ Generated ${captions.length} captions successfully`);
+
+    if (captions.length > 0) {
         try {
             await dbConnect();
             const client = await clientPromise;
@@ -181,7 +316,7 @@ const generateCaptionsFlow = ai.defineFlow(
             
             // Create a single document with all captions
             const postToInsert = {
-              captions: output.captions, // Store all captions in array
+              captions: captions, // Store all captions in array
               image: input.imageUrl,
               mood: input.mood,
               description: input.description || null,
@@ -196,7 +331,7 @@ const generateCaptionsFlow = ai.defineFlow(
             }
 
             console.log(`✅ Caption set saved successfully with ID: ${result.insertedId}`);
-            console.log(`📊 Saved ${output.captions.length} captions in single document`);
+            console.log(`📊 Saved ${captions.length} captions in single document`);
         } catch (error) {
             console.error('CRITICAL: Failed to save caption set to database', error);
             // Re-throw the error to be caught by the client-side fetch.
@@ -205,6 +340,6 @@ const generateCaptionsFlow = ai.defineFlow(
         }
     }
     
-    return output!;
+    return { captions };
   }
 );

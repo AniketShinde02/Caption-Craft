@@ -11,6 +11,9 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   serverExternalPackages: ['imagekit'],
+  env: {
+    PORT: '9002',
+  },
   images: {
     remotePatterns: [
       {
