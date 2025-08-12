@@ -5,8 +5,13 @@ export default withAuth(
   function middleware(req) {
     const { pathname } = req.nextUrl;
     
-    // Always allow setup page to pass through
-    if (pathname === '/admin/setup') {
+    // Normalize pathname to handle trailing slashes
+    const normalizedPath = pathname.endsWith('/') && pathname !== '/' 
+      ? pathname.slice(0, -1) 
+      : pathname;
+    
+    // Always allow setup page to pass through (handle both with and without trailing slash)
+    if (normalizedPath === '/admin/setup' || normalizedPath === '/setup') {
       return NextResponse.next();
     }
 
@@ -18,13 +23,18 @@ export default withAuth(
       authorized: ({ token, req }) => {
         const { pathname } = req.nextUrl;
         
-        // Always allow setup page
-        if (pathname === '/admin/setup') {
+        // Normalize pathname to handle trailing slashes
+        const normalizedPath = pathname.endsWith('/') && pathname !== '/' 
+          ? pathname.slice(0, -1) 
+          : pathname;
+        
+        // Always allow setup page (handle both with and without trailing slash)
+        if (normalizedPath === '/admin/setup' || normalizedPath === '/setup') {
           return true;
         }
         
         // For admin routes, require authentication
-        if (pathname.startsWith('/admin')) {
+        if (normalizedPath.startsWith('/admin')) {
           return !!token;
         }
         
@@ -33,7 +43,7 @@ export default withAuth(
       },
     },
     pages: { 
-      signIn: '/admin/setup',
+      signIn: '/setup', // Use the correct setup path
     },
   }
 );

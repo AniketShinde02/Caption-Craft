@@ -7,15 +7,18 @@ import AdminUser from '@/models/AdminUser';
 import bcrypt from 'bcryptjs';
 import { connectToDatabase } from '@/lib/db';
 import { ObjectId } from 'mongodb';
+import { getNextAuthUrl, envConfig } from './env-config';
 
 // Debug: Check NextAuth environment variables
 console.log('🔐 NextAuth Environment Check:', {
-  NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET ? '✅ Set' : '❌ Missing',
-  NEXTAUTH_URL: process.env.NEXTAUTH_URL || 'undefined',
-  NODE_ENV: process.env.NODE_ENV || 'undefined',
+  NEXTAUTH_SECRET: envConfig.nextAuth.secret !== 'fallback-secret-change-in-production' ? '✅ Set' : '❌ Missing',
+  NEXTAUTH_URL: envConfig.nextAuth.url,
+  NODE_ENV: envConfig.app.environment,
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID ? '✅ Set' : '❌ Missing',
   GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET ? '✅ Set' : '❌ Missing'
 });
+
+console.log('🔐 NextAuth URL configured as:', getNextAuthUrl());
 
 
 export const authOptions: NextAuthOptions = {
@@ -143,7 +146,7 @@ export const authOptions: NextAuthOptions = {
         path: '/',
         secure: process.env.NODE_ENV === 'production',
         maxAge: 60 * 60 * 24 * 30, // 30 days cookie expiry
-        domain: process.env.NODE_ENV === 'production' ? process.env.NEXTAUTH_URL?.replace(/https?:\/\//, '').split('/')[0] : undefined
+        domain: process.env.NODE_ENV === 'production' ? getNextAuthUrl().replace(/https?:\/\//, '').split('/')[0] : undefined
       }
     },
     callbackUrl: {
