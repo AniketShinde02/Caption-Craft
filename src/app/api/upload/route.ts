@@ -7,7 +7,7 @@ import path from 'path';
 export const config = {
   api: {
     bodyParser: {
-      sizeLimit: '10mb',
+      sizeLimit: '4mb',
     },
     responseLimit: false,
   },
@@ -50,10 +50,10 @@ export async function POST(req: Request) {
   try {
     // Check content length first
     const contentLength = req.headers.get('content-length');
-    if (contentLength && parseInt(contentLength) > 10 * 1024 * 1024) {
+    if (contentLength && parseInt(contentLength) > 4 * 1024 * 1024) {
       return NextResponse.json({ 
         success: false, 
-        message: 'File too large. Please upload an image smaller than 10MB.' 
+        message: 'File too large. Please upload an image smaller than 4MB.' 
       }, { status: 413 });
     }
 
@@ -70,8 +70,8 @@ export async function POST(req: Request) {
     }
 
     // Validate file size (max 10MB)
-    if (file.size > 10 * 1024 * 1024) {
-      return NextResponse.json({ success: false, message: 'File too large. Please upload an image smaller than 10MB.' }, { status: 413 });
+    if (file.size > 4 * 1024 * 1024) {
+      return NextResponse.json({ success: false, message: 'File too large. Please upload an image smaller than 4MB.' }, { status: 413 });
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
@@ -111,7 +111,7 @@ export async function POST(req: Request) {
     } else if (error.message?.includes('timeout')) {
       errorMessage = 'Upload timeout. Please try with a smaller image.';
     } else if (error.message?.includes('too large') || error.message?.includes('413')) {
-      errorMessage = 'File too large. Please upload an image smaller than 10MB.';
+      errorMessage = 'File too large. Please upload an image smaller than 4MB.';
       statusCode = 413;
     }
     

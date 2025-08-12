@@ -73,9 +73,15 @@ export function CaptionGenerator() {
     const file = e.target.files?.[0];
     if (file) {
       console.log('✅ File selected:', file.name, file.size, file.type);
+      // Enforce 4MB limit to stay below platform request size caps
+      const MAX_BYTES = 4 * 1024 * 1024;
+      if (file.size > MAX_BYTES) {
+        setError('File too large. Please upload an image smaller than 4MB.');
+        return;
+      }
       setUploadedFile(file);
       // Clear image-related error when user uploads an image
-      if (error === "Please upload an image to generate captions.") {
+      if (error === "Please upload an image to generate captions." || error.includes('File too large')) {
         setError('');
       }
       const reader = new FileReader();
@@ -122,10 +128,23 @@ export function CaptionGenerator() {
         method: 'POST',
         body: formData,
       });
-      const uploadData = await uploadResponse.json();
+
+      // Robustly parse response in case of non-JSON (e.g., plain text 413)
+      let uploadData: any = null;
+      try {
+        uploadData = await uploadResponse.json();
+      } catch (jsonErr) {
+        const fallbackText = await uploadResponse.text().catch(() => '');
+        const isEntityTooLarge = uploadResponse.status === 413 || /Request Entity Too Large/i.test(fallbackText);
+        const message = isEntityTooLarge
+          ? 'File too large. Please upload an image smaller than 4MB.'
+          : (fallbackText || 'Image upload failed.');
+        throw new Error(message);
+      }
       
-      if (!uploadResponse.ok || !uploadData.success) {
-        throw new Error(uploadData.message || 'Image upload failed.');
+      if (!uploadResponse.ok || !uploadData?.success) {
+        const message = uploadData?.message || 'Image upload failed.';
+        throw new Error(message);
       }
 
       // Send to AI for analysis
@@ -179,7 +198,7 @@ export function CaptionGenerator() {
     } catch (error: any) {
       // Only log non-rate-limit errors to avoid console spam
       if (!error.message?.includes('free images this month') && !error.message?.includes('monthly limit')) {
-        console.error("Caption Generation Error:", error);
+        console.error("Caption Generation Error", error);
       }
       
       // If it's a rate limit error, trigger quota refresh
@@ -243,7 +262,7 @@ export function CaptionGenerator() {
                     <div className="flex flex-col items-center justify-center pt-5 pb-6 px-4 text-center">
                       <UploadCloud className="w-8 h-8 mb-3 sm:mb-4 text-muted-foreground" />
                       <p className="mb-2 text-sm text-muted-foreground"><span className="font-semibold text-primary">Click to upload</span> or drag and drop</p>
-                      <p className="text-xs text-muted-foreground">PNG, JPG, GIF up to 10MB</p>
+                      <p className="text-xs text-muted-foreground">PNG, JPG, GIF up to 4MB</p>
                       {error === "Please upload an image to generate captions." && (
                         <p className="text-xs text-red-500 mt-2">* Image required</p>
                       )}
