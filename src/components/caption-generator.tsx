@@ -73,10 +73,10 @@ export function CaptionGenerator() {
     const file = e.target.files?.[0];
     if (file) {
       console.log('✅ File selected:', file.name, file.size, file.type);
-      // Enforce 4MB limit to stay below platform request size caps
-      const MAX_BYTES = 4 * 1024 * 1024;
+      // Enforce 10MB limit
+      const MAX_BYTES = 10 * 1024 * 1024;
       if (file.size > MAX_BYTES) {
-        setError('File too large. Please upload an image smaller than 4MB.');
+        setError('File too large. Please upload an image smaller than 10MB.');
         return;
       }
       setUploadedFile(file);
@@ -137,7 +137,7 @@ export function CaptionGenerator() {
         const fallbackText = await uploadResponse.text().catch(() => '');
         const isEntityTooLarge = uploadResponse.status === 413 || /Request Entity Too Large/i.test(fallbackText);
         const message = isEntityTooLarge
-          ? 'File too large. Please upload an image smaller than 4MB.'
+          ? 'File too large. Please upload an image smaller than 10MB.'
           : (fallbackText || 'Image upload failed.');
         throw new Error(message);
       }
@@ -262,7 +262,7 @@ export function CaptionGenerator() {
                     <div className="flex flex-col items-center justify-center pt-5 pb-6 px-4 text-center">
                       <UploadCloud className="w-8 h-8 mb-3 sm:mb-4 text-muted-foreground" />
                       <p className="mb-2 text-sm text-muted-foreground"><span className="font-semibold text-primary">Click to upload</span> or drag and drop</p>
-                      <p className="text-xs text-muted-foreground">PNG, JPG, GIF up to 4MB</p>
+                      <p className="text-xs text-muted-foreground">PNG, JPG, GIF up to 10MB</p>
                       {error === "Please upload an image to generate captions." && (
                         <p className="text-xs text-red-500 mt-2">* Image required</p>
                       )}

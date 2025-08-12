@@ -281,11 +281,11 @@ export default function ProfilePage() {
             return;
         }
 
-        // Validate file size (max 5MB)
-        if (file.size > 4 * 1024 * 1024) {
+        // Validate file size (max 10MB)
+        if (file.size > 10 * 1024 * 1024) {
             setInlineMessage({
                 type: 'error',
-                message: 'Please select an image smaller than 4MB.'
+                message: 'Please select an image smaller than 10MB.'
             });
             return;
         }
@@ -310,7 +310,7 @@ export default function ProfilePage() {
                 const fallbackText = await uploadRes.text().catch(() => '');
                 const isEntityTooLarge = uploadRes.status === 413 || /Request Entity Too Large/i.test(fallbackText);
                 const message = isEntityTooLarge
-                  ? 'File too large. Please upload an image smaller than 4MB.'
+                  ? 'File too large. Please upload an image smaller than 10MB.'
                   : (fallbackText || 'Upload failed');
                 throw new Error(message);
             }
