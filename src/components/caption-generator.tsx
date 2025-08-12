@@ -167,7 +167,15 @@ export function CaptionGenerator() {
         }),
       });
 
-      const captionData = await captionResponse.json();
+      // Robustly parse caption response in case of non-JSON errors
+      let captionData: any = null;
+      try {
+        captionData = await captionResponse.json();
+      } catch (jsonErr) {
+        const fallbackText = await captionResponse.text().catch(() => '');
+        const message = fallbackText || 'Failed to generate captions.';
+        throw new Error(message);
+      }
 
       if (!captionResponse.ok) {
         // Handle rate limiting errors specifically
