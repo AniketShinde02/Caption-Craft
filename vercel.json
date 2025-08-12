@@ -1,0 +1,30 @@
+{
+  "functions": {
+    "src/app/api/upload/route.ts": {
+      "maxDuration": 300
+    },
+    "src/app/api/admin/setup/route.ts": {
+      "maxDuration": 300
+    },
+    "src/app/api/admin/request-setup-token/route.ts": {
+      "maxDuration": 300
+    }
+  },
+  "headers": [
+    {
+      "source": "/api/upload",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        }
+      ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/api/upload",
+      "destination": "/api/upload"
+    }
+  ]
+}
