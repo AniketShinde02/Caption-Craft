@@ -1,10 +1,37 @@
 {
   "functions": {
     "src/app/api/upload/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/admin/setup/route.ts": {
+      "maxDuration": 30
+    },
+    "src/app/api/admin/request-setup-token/route.ts": {
       "maxDuration": 30
     }
   },
   "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        },
+        {
+          "key": "Access-Control-Allow-Methods",
+          "value": "GET, POST, PUT, DELETE, OPTIONS"
+        },
+        {
+          "key": "Access-Control-Allow-Headers",
+          "value": "Content-Type, Authorization, X-Requested-With"
+        },
+        {
+          "key": "Access-Control-Max-Age",
+          "value": "86400"
+        }
+      ]
+    },
     {
       "source": "/api/upload",
       "headers": [

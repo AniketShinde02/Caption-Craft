@@ -73,7 +73,29 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const { action, token, email, password, username } = await request.json();
+    // Add CORS headers for mobile compatibility
+    const response = NextResponse.next();
+    response.headers.set('Access-Control-Allow-Origin', '*');
+    response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+    
+    // Handle preflight OPTIONS request
+    if (request.method === 'OPTIONS') {
+      return new NextResponse(null, { status: 200, headers: response.headers });
+    }
+
+    let body;
+    try {
+      body = await request.json();
+    } catch (parseError) {
+      console.error('❌ Failed to parse request body:', parseError);
+      return NextResponse.json(
+        { success: false, message: 'Invalid request format. Please check your input.' },
+        { status: 400 }
+      );
+    }
+
+    const { action, token, email, password, username } = body;
     
     // JWT verification for production setup
     const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secure-jwt-secret-key-change-this-in-production';
@@ -98,6 +120,16 @@ export async function POST(request: NextRequest) {
       try {
         // Verify JWT token
         console.log('🔐 Attempting JWT verification with token length:', token.length);
+        
+        // Basic JWT format validation
+        if (!token.includes('.') || token.split('.').length !== 3) {
+          console.log('❌ Invalid JWT format');
+          return NextResponse.json(
+            { success: false, message: 'Invalid token format. Please ensure you copied the complete token.' },
+            { status: 400 }
+          );
+        }
+        
         decoded = verify(token, JWT_SECRET) as any;
         
         console.log('✅ JWT decoded successfully:', {
@@ -148,8 +180,8 @@ export async function POST(request: NextRequest) {
         console.error('JWT verification failed:', jwtError);
         console.error('Token that failed:', token.substring(0, 50) + '...');
         return NextResponse.json(
-          { success: false, message: 'Invalid or malformed setup token' },
-          { status: 500 }
+          { success: false, message: 'Invalid or malformed setup token. Please ensure you copied the complete token correctly.' },
+          { status: 400 }
         );
       }
     }
@@ -160,7 +192,15 @@ export async function POST(request: NextRequest) {
         // Check admin_users collection specifically
         const adminExists = await AdminUser.countDocuments({ isAdmin: true }) > 0;
         
-        return NextResponse.json({ success: true, adminExists: adminExists, message: 'Token verified successfully' });
+        return NextResponse.json({ 
+          success: true, 
+          adminExists: adminExists, 
+          message: 'Token verified successfully',
+          tokenInfo: {
+            expiresAt: decoded ? new Date(decoded.exp * 1000).toISOString() : null,
+            type: decoded ? decoded.type : null
+          }
+        });
         
       case 'initialize':
         return await handleInitialize();
@@ -184,7 +224,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Setup action failed:', error);
     return NextResponse.json(
-      { success: false, message: 'Setup action failed' },
+      { success: false, message: 'Setup action failed. Please try again.' },
       { status: 500 }
     );
   }

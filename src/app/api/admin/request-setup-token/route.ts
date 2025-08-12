@@ -7,7 +7,32 @@ const ALLOWED_EMAIL = 'sunnyshinde2601@gmail.com';
 
 export async function POST(request: NextRequest) {
   try {
-    const { email } = await request.json();
+    // Add CORS headers for mobile compatibility
+    const response = NextResponse.next();
+    response.headers.set('Access-Control-Allow-Origin', '*');
+    response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+    
+    // Handle preflight OPTIONS request
+    if (request.method === 'OPTIONS') {
+      return new NextResponse(null, { status: 200, headers: response.headers });
+    }
+
+    let body;
+    try {
+      body = await request.json();
+    } catch (parseError) {
+      console.error('❌ Failed to parse request body:', parseError);
+      return NextResponse.json(
+        { 
+          success: false, 
+          message: 'Invalid request format. Please check your input.' 
+        },
+        { status: 400 }
+      );
+    }
+
+    const { email } = body;
 
     // Security check: Only allow the specified admin email
     if (email !== ALLOWED_EMAIL) {
@@ -71,7 +96,8 @@ export async function POST(request: NextRequest) {
       success: true,
       message: 'Setup token generated and sent to admin email',
       tokenId: tokenPayload.jti,
-      expiresAt: new Date(tokenPayload.exp * 1000).toISOString()
+      expiresAt: new Date(tokenPayload.exp * 1000).toISOString(),
+      expiresIn: '24 hours'
     });
 
   } catch (error) {

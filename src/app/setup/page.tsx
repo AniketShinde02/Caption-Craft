@@ -8,8 +8,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { FixedHeightMessage } from '@/components/ui/inline-message';
 import { Loader2, Shield, UserPlus, LogIn, Key, CheckCircle, AlertCircle, ArrowLeft, Eye, EyeOff } from 'lucide-react';
+import MobileErrorBoundary from '@/components/ui/mobile-error-boundary';
 
-export default function AdminSetup() {
+function AdminSetupContent() {
   const router = useRouter();
   const { data: session, status } = useSession();
   const [step, setStep] = useState<'token' | 'options' | 'signup' | 'login'>('token');
@@ -135,36 +136,74 @@ export default function AdminSetup() {
 
      // Add timeout for faster response
      const timeoutPromise = new Promise((_, reject) => {
-       setTimeout(() => reject(new Error('Request timeout')), 10000); // 10 second timeout
+       setTimeout(() => reject(new Error('Request timeout')), 15000); // Increased to 15 seconds
      });
 
      try {
        const verificationPromise = fetch('/api/admin/setup', {
          method: 'POST',
-         headers: { 'Content-Type': 'application/json' },
+         headers: { 
+           'Content-Type': 'application/json',
+           'Accept': 'application/json'
+         },
          body: JSON.stringify({ action: 'verify-token', token: setupToken })
        });
 
        // Race between timeout and actual request
        const response = await Promise.race([verificationPromise, timeoutPromise]) as Response;
-       const data = await response.json();
+       
+       // Check if response is ok before trying to parse JSON
+       if (!response.ok) {
+         if (response.status === 401) {
+           setError('Token verification failed. The token may be expired or invalid.');
+         } else if (response.status === 400) {
+           setError('Invalid token format. Please ensure you copied the complete token.');
+         } else if (response.status >= 500) {
+           setError('Server error. Please try again later.');
+         } else {
+           setError(`Verification failed (${response.status}). Please try again.`);
+         }
+         return;
+       }
 
-       if (response.ok && data.success) {
+       let data;
+       try {
+         data = await response.json();
+       } catch (jsonError) {
+         console.error('Failed to parse response JSON:', jsonError);
+         setError('Invalid response from server. Please try again.');
+         return;
+       }
+
+       if (data.success) {
          setTokenVerified(true);
          setSuccess('Token verified successfully!');
          setError('');
          
+         // Show token expiration info
+         if (data.tokenInfo && data.tokenInfo.expiresAt) {
+           const expiresAt = new Date(data.tokenInfo.expiresAt);
+           const now = new Date();
+           const timeLeft = expiresAt.getTime() - now.getTime();
+           const hoursLeft = Math.floor(timeLeft / (1000 * 60 * 60));
+           const minutesLeft = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+           
+           setSuccess(`Token verified successfully! Expires in ${hoursLeft}h ${minutesLeft}m`);
+         }
+         
          setTimeout(() => {
            setSuccess('');
            setStep('options');
-         }, 1000); // Reduced to 1 second
+         }, 2000); // Increased to 2 seconds for better UX
        } else {
          setError(data.message || 'Token verification failed');
        }
      } catch (error) {
        console.error('Token verification error:', error);
        if (error instanceof Error && error.message === 'Request timeout') {
-         setError('Token verification timed out. Please try again.');
+         setError('Token verification timed out. Please check your connection and try again.');
+       } else if (error instanceof TypeError && error.message.includes('fetch')) {
+         setError('Network error. Please check your connection and try again.');
        } else {
          setError('Failed to verify token. Please try again.');
        }
@@ -183,15 +222,39 @@ export default function AdminSetup() {
      try {
        const response = await fetch('/api/admin/request-setup-token', {
          method: 'POST',
-         headers: { 'Content-Type': 'application/json' },
+         headers: { 
+           'Content-Type': 'application/json',
+           'Accept': 'application/json'
+         },
          body: JSON.stringify({
            email: 'sunnyshinde2601@gmail.com' // Only this email is authorized
          })
        });
 
-       const data = await response.json();
+       // Check if response is ok before trying to parse JSON
+       if (!response.ok) {
+         if (response.status === 403) {
+           setError('Unauthorized email address. Only authorized administrators can request tokens.');
+         } else if (response.status >= 500) {
+           setError('Server error. Please try again later.');
+         } else {
+           setError(`Token request failed (${response.status}). Please try again.`);
+         }
+         setTokenRequestMessage('❌ Token generation failed. Please try again or contact system administrator.');
+         return;
+       }
 
-       if (response.ok && data.success) {
+       let data;
+       try {
+         data = await response.json();
+       } catch (jsonError) {
+         console.error('Failed to parse response JSON:', jsonError);
+         setError('Invalid response from server. Please try again.');
+         setTokenRequestMessage('❌ Server response error. Please try again.');
+         return;
+       }
+
+       if (data.success) {
          setTokenRequestMessage('✅ Token generated and sent to admin email. Please check your email and paste the token below.');
          setSuccess(''); // Clear any previous success message
        } else {
@@ -200,8 +263,13 @@ export default function AdminSetup() {
        }
      } catch (error) {
        console.error('❌ Error requesting token:', error);
-       setError('Failed to request token. Please check your connection and try again.');
-       setTokenRequestMessage('❌ Network error. Please check your connection and try again.');
+       if (error instanceof TypeError && error.message.includes('fetch')) {
+         setError('Network error. Please check your connection and try again.');
+         setTokenRequestMessage('❌ Network error. Please check your connection and try again.');
+       } else {
+         setError('Failed to request token. Please check your connection and try again.');
+         setTokenRequestMessage('❌ Network error. Please check your connection and try again.');
+       }
      } finally {
        setIsGettingToken(false);
      }
@@ -226,7 +294,10 @@ export default function AdminSetup() {
     try {
       const response = await fetch('/api/admin/setup', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
         body: JSON.stringify({
           action: 'create-admin',
           email: signupForm.email,
@@ -235,9 +306,30 @@ export default function AdminSetup() {
         })
       });
 
-      const data = await response.json();
+      // Check if response is ok before trying to parse JSON
+      if (!response.ok) {
+        if (response.status === 401) {
+          setError('Token expired or invalid. Please generate a new token.');
+        } else if (response.status === 400) {
+          setError('Invalid request. Please check your input and try again.');
+        } else if (response.status >= 500) {
+          setError('Server error. Please try again later.');
+        } else {
+          setError(`Signup failed (${response.status}). Please try again.`);
+        }
+        return;
+      }
 
-      if (response.ok && data.success) {
+      let data;
+      try {
+        data = await response.json();
+      } catch (jsonError) {
+        console.error('Failed to parse response JSON:', jsonError);
+        setError('Invalid response from server. Please try again.');
+        return;
+      }
+
+      if (data.success) {
         setSuccess('Admin account created successfully! Signing you in...');
         
         console.log('🔐 Attempting auto-login for newly created admin:', signupForm.email);
@@ -264,7 +356,12 @@ export default function AdminSetup() {
         setError(data.message || 'Failed to create admin account');
       }
     } catch (error) {
-      setError('Failed to create admin account. Please try again.');
+      console.error('Signup error:', error);
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        setError('Network error. Please check your connection and try again.');
+      } else {
+        setError('Failed to create admin account. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -299,12 +396,22 @@ export default function AdminSetup() {
           router.push('/admin/dashboard');
         }, 1500);
       } else {
-        console.log('❌ Manual login failed');
-        setError('Invalid email or password. Please check your admin credentials.');
+        console.log('❌ Manual login failed:', result?.error);
+        if (result?.error === 'CredentialsSignin') {
+          setError('Invalid email or password. Please try again.');
+        } else if (result?.error === 'Configuration') {
+          setError('Authentication system error. Please contact administrator.');
+        } else {
+          setError('Login failed. Please try again.');
+        }
       }
     } catch (error) {
       console.error('Login error:', error);
-      setError('Login failed. Please try again.');
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        setError('Network error. Please check your connection and try again.');
+      } else {
+        setError('Login failed. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -421,7 +528,8 @@ export default function AdminSetup() {
                     <p>• Click "Get Token" to generate and send token</p>
                     <p>• Token will be sent to authorized admin email</p>
                     <p>• Paste the received token in the field below</p>
-                    <p>• Token expires in 24 hours</p>
+                    <p>• Token expires in 24 hours (not 30 seconds)</p>
+                    <p>• Check your email spam folder if not received</p>
                   </div>
                 </div>
 
@@ -731,5 +839,13 @@ export default function AdminSetup() {
         </Card>
       </div>
     </div>
+  );
+}
+
+export default function AdminSetup() {
+  return (
+    <MobileErrorBoundary>
+      <AdminSetupContent />
+    </MobileErrorBoundary>
   );
 }
