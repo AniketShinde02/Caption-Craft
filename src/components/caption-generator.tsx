@@ -73,9 +73,15 @@ export function CaptionGenerator() {
     const file = e.target.files?.[0];
     if (file) {
       console.log('✅ File selected:', file.name, file.size, file.type);
+      // Enforce 10MB limit
+      const MAX_BYTES = 10 * 1024 * 1024;
+      if (file.size > MAX_BYTES) {
+        setError('File too large. Please upload an image smaller than 10MB.');
+        return;
+      }
       setUploadedFile(file);
       // Clear image-related error when user uploads an image
-      if (error === "Please upload an image to generate captions.") {
+      if (error === "Please upload an image to generate captions." || error.includes('File too large')) {
         setError('');
       }
       const reader = new FileReader();
@@ -122,10 +128,23 @@ export function CaptionGenerator() {
         method: 'POST',
         body: formData,
       });
-      const uploadData = await uploadResponse.json();
+
+      // Robustly parse response in case of non-JSON (e.g., plain text 413)
+      let uploadData: any = null;
+      try {
+        uploadData = await uploadResponse.json();
+      } catch (jsonErr) {
+        const fallbackText = await uploadResponse.text().catch(() => '');
+        const isEntityTooLarge = uploadResponse.status === 413 || /Request Entity Too Large/i.test(fallbackText);
+        const message = isEntityTooLarge
+          ? 'File too large. Please upload an image smaller than 10MB.'
+          : (fallbackText || 'Image upload failed.');
+        throw new Error(message);
+      }
       
-      if (!uploadResponse.ok || !uploadData.success) {
-        throw new Error(uploadData.message || 'Image upload failed.');
+      if (!uploadResponse.ok || !uploadData?.success) {
+        const message = uploadData?.message || 'Image upload failed.';
+        throw new Error(message);
       }
 
       // Send to AI for analysis
@@ -148,7 +167,15 @@ export function CaptionGenerator() {
         }),
       });
 
-      const captionData = await captionResponse.json();
+      // Robustly parse caption response in case of non-JSON errors
+      let captionData: any = null;
+      try {
+        captionData = await captionResponse.json();
+      } catch (jsonErr) {
+        const fallbackText = await captionResponse.text().catch(() => '');
+        const message = fallbackText || 'Failed to generate captions.';
+        throw new Error(message);
+      }
 
       if (!captionResponse.ok) {
         // Handle rate limiting errors specifically
@@ -179,7 +206,7 @@ export function CaptionGenerator() {
     } catch (error: any) {
       // Only log non-rate-limit errors to avoid console spam
       if (!error.message?.includes('free images this month') && !error.message?.includes('monthly limit')) {
-        console.error("Caption Generation Error:", error);
+        console.error("Caption Generation Error", error);
       }
       
       // If it's a rate limit error, trigger quota refresh

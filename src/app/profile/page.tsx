@@ -281,11 +281,11 @@ export default function ProfilePage() {
             return;
         }
 
-        // Validate file size (max 5MB)
-        if (file.size > 5 * 1024 * 1024) {
+        // Validate file size (max 10MB)
+        if (file.size > 10 * 1024 * 1024) {
             setInlineMessage({
                 type: 'error',
-                message: 'Please select an image smaller than 5MB.'
+                message: 'Please select an image smaller than 10MB.'
             });
             return;
         }
@@ -302,7 +302,18 @@ export default function ProfilePage() {
                 body: formData,
             });
 
-            const uploadData = await uploadRes.json();
+            // Robustly parse response in case of non-JSON (e.g., plain text 413)
+            let uploadData: any = null;
+            try {
+                uploadData = await uploadRes.json();
+            } catch (jsonErr) {
+                const fallbackText = await uploadRes.text().catch(() => '');
+                const isEntityTooLarge = uploadRes.status === 413 || /Request Entity Too Large/i.test(fallbackText);
+                const message = isEntityTooLarge
+                  ? 'File too large. Please upload an image smaller than 10MB.'
+                  : (fallbackText || 'Upload failed');
+                throw new Error(message);
+            }
 
             if (!uploadRes.ok) {
                 throw new Error(uploadData.message || 'Upload failed');
