@@ -112,22 +112,33 @@ function AdminSetupContent() {
        return;
      }
 
-     // Basic JWT format validation
+     // Enhanced JWT format validation
      if (!setupToken.includes('.') || setupToken.split('.').length !== 3) {
        setError('Invalid JWT format. Token should have 3 parts separated by dots.');
        return;
      }
 
-     // Check token length (JWT tokens are typically very long)
-     if (setupToken.length < 100) {
-       setError('Token seems too short. Please ensure you copied the complete JWT token.');
+     // Check token length (JWT tokens are typically very long - at least 150+ characters)
+     if (setupToken.length < 150) {
+       setError('Token appears to be incomplete. JWT tokens are typically 150+ characters long. Please ensure you copied the complete token from your email.');
        return;
+     }
+
+     // Check if token ends with proper JWT format (should end with base64 characters)
+     const parts = setupToken.split('.');
+     if (parts.length === 3) {
+       const lastPart = parts[2];
+       if (lastPart.length < 20) {
+         setError('Token appears to be truncated. The last part seems too short. Please copy the complete token from your email.');
+         return;
+       }
      }
 
      console.log('🔐 Attempting to verify token:', {
        tokenLength: setupToken.length,
        tokenStart: setupToken.substring(0, 20) + '...',
-       tokenEnd: '...' + setupToken.substring(setupToken.length - 20)
+       tokenEnd: '...' + setupToken.substring(setupToken.length - 20),
+       tokenParts: setupToken.split('.').map(part => part.length)
      });
 
      setIsVerifying(true);
@@ -157,9 +168,9 @@ function AdminSetupContent() {
          if (response.status === 401) {
            setError('Token verification failed. The token may be expired or invalid.');
          } else if (response.status === 400) {
-           setError('Invalid token format. Please ensure you copied the complete token.');
+           setError('Invalid token format. Please ensure you copied the complete token from your email.');
          } else if (response.status >= 500) {
-           setError('Server error. Please try again later.');
+           setError('Server error. Please try again later or contact support.');
          } else {
            setError(`Verification failed (${response.status}). Please try again.`);
          }
@@ -527,9 +538,10 @@ function AdminSetupContent() {
                   <div className="text-xs text-gray-500 space-y-1">
                     <p>• Click "Get Token" to generate and send token</p>
                     <p>• Token will be sent to authorized admin email</p>
-                    <p>• Paste the received token in the field below</p>
+                    <p>• <strong>Copy the ENTIRE token from your email</strong> (150+ characters)</p>
                     <p>• Token expires in 24 hours (not 30 seconds)</p>
                     <p>• Check your email spam folder if not received</p>
+                    <p className="text-red-600 font-medium">⚠️ Important: Make sure to copy the complete token without truncation</p>
                   </div>
                 </div>
 
@@ -553,6 +565,18 @@ function AdminSetupContent() {
                       </>
                     )}
                   </Button>
+                  
+                  {/* Token copying instructions */}
+                  <div className="text-xs text-gray-600 mb-3 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                    <p className="font-medium text-blue-800 mb-2">📋 How to copy the token properly:</p>
+                    <ul className="text-left space-y-1 text-blue-700">
+                      <li>• <strong>Gmail:</strong> Click on the token text, press Ctrl+A (Cmd+A on Mac), then Ctrl+C</li>
+                      <li>• <strong>Outlook:</strong> Double-click the token, press Ctrl+C to copy</li>
+                      <li>• <strong>Mobile:</strong> Long-press the token text, select "Select All", then "Copy"</li>
+                      <li>• <strong>Important:</strong> Make sure you see the complete token before copying</li>
+                    </ul>
+                  </div>
+                  
                   {/* Fixed height token message to prevent form expansion */}
                   <FixedHeightMessage
                     type="info"
@@ -565,22 +589,36 @@ function AdminSetupContent() {
                   <label htmlFor="token" className="block text-sm font-semibold text-gray-800 mb-2">
                     Setup Token
                   </label>
+                  <div className="text-xs text-gray-600 mb-2 text-center">
+                    💡 <strong>Copy the entire token from your email</strong> - JWT tokens are typically 150+ characters long
+                  </div>
                   <Input
                     id="token"
                     type="text"
                     value={setupToken}
                     onChange={(e) => setSetupToken(e.target.value)}
-                    placeholder="Enter your setup token"
+                    placeholder="Paste your complete setup token here..."
                     className="h-10 sm:h-10 text-center text-sm font-mono bg-white border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                     onKeyPress={(e) => e.key === 'Enter' && handleTokenVerification()}
                     style={{ fontSize: '12px', letterSpacing: '0.5px' }}
                   />
-                  <div className="text-xs text-gray-500 mt-1 text-center">
-                    🔒 Token access restricted to authorized administrators only
+                  <div className="text-xs text-gray-500 mt-2 text-center space-y-1">
+                    <div>🔒 Token access restricted to authorized administrators only</div>
+                    <div>⚠️ Unauthorized access attempts will be logged and blocked</div>
+                    <div className="text-blue-600 font-medium">
+                      📧 Make sure to copy the complete token from your email (check spam folder)
+                    </div>
                   </div>
-                  <div className="text-xs text-red-500 mt-1 text-center font-medium">
-                    ⚠️ Unauthorized access attempts will be logged and blocked
-                  </div>
+                  
+                  {/* Token length indicator */}
+                  {setupToken && (
+                    <div className={`text-xs mt-2 text-center font-medium ${
+                      setupToken.length >= 150 ? 'text-green-600' : 'text-red-600'
+                    }`}>
+                      Token length: {setupToken.length} characters 
+                      {setupToken.length >= 150 ? ' ✅' : ' ⚠️ (may be incomplete)'}
+                    </div>
+                  )}
                 </div>
                 <Button
                   onClick={handleTokenVerification}
