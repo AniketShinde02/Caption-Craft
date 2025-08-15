@@ -9,21 +9,64 @@ import { InlineMessage } from '@/components/ui/inline-message';
 
 interface CaptionCardProps {
   caption: string;
+  index: number;
+  onRegenerate: (index: number) => void;
+  isRegenerating?: boolean;
 }
 
-export function CaptionCard({ caption }: CaptionCardProps) {
+export function CaptionCard({ caption, index, onRegenerate, isRegenerating }: CaptionCardProps) {
   const [copied, setCopied] = useState(false);
   const [inlineMessage, setInlineMessage] = useState<string | null>(null);
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(caption);
-    setCopied(true);
-    setInlineMessage("Copied to clipboard! ✨");
+    // Check if clipboard API is available
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(caption)
+        .then(() => {
+          setCopied(true);
+          setInlineMessage("Copied to clipboard! ✨");
+        })
+        .catch((err) => {
+          console.error('Failed to copy to clipboard:', err);
+          // Fallback: try to copy using document.execCommand
+          fallbackCopyTextToClipboard(caption);
+        });
+    } else {
+      // Fallback for browsers without clipboard API
+      fallbackCopyTextToClipboard(caption);
+    }
     
     // Clear message after 2 seconds
     setTimeout(() => {
       setInlineMessage(null);
     }, 2000);
+  };
+
+  // Fallback copy function for older browsers
+  const fallbackCopyTextToClipboard = (text: string) => {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-999999px';
+    textArea.style.top = '-999999px';
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    
+    try {
+      const successful = document.execCommand('copy');
+      if (successful) {
+        setCopied(true);
+        setInlineMessage("Copied to clipboard! ✨");
+      } else {
+        setInlineMessage("Copy failed. Please select and copy manually.");
+      }
+    } catch (err) {
+      console.error('Fallback copy failed:', err);
+      setInlineMessage("Copy failed. Please select and copy manually.");
+    }
+    
+    document.body.removeChild(textArea);
   };
 
   useEffect(() => {
@@ -36,43 +79,38 @@ export function CaptionCard({ caption }: CaptionCardProps) {
   }, [copied]);
 
   return (
-    <div className="group bg-muted/40 transition-all duration-300 rounded-lg flex flex-col justify-between min-h-[140px] sm:min-h-[150px] border border-border hover:border-primary/50">
-      {/* Inline Message Display */}
-      {inlineMessage && (
-        <div className="px-3 sm:px-4 pt-3 sm:pt-4">
-          <InlineMessage
-            type="success"
-            message={inlineMessage}
-            className="text-xs sm:text-sm"
-          />
-        </div>
-      )}
-      
-      {/* Caption Content - Mobile First */}
-      <div className="p-3 sm:p-4 flex-grow">
-        <p className="text-foreground/90 text-xs sm:text-sm leading-relaxed">{caption}</p>
+    <div className="group bg-[#F2EFE5]/20 dark:bg-muted/20 transition-all duration-300 flex flex-col justify-between min-h-[160px] border border-[#C7C8CC]/80 dark:border-border hover:border-[#B4B4B8]/90 dark:hover:border-border/70 rounded-xl shadow-sm hover:shadow-md overflow-hidden">
+      {/* Caption Content - Compact */}
+      <div className="p-4 flex-grow">
+        <p className="text-foreground/90 text-sm leading-relaxed line-clamp-4">{caption}</p>
       </div>
       
-      {/* Action Button - Mobile First */}
-      <div className="p-2 sm:p-3 border-t border-border/50">
+      {/* Action Buttons - Compact */}
+      <div className="p-3 border-t border-[#C7C8CC]/50 dark:border-border/50 bg-[#E3E1D9]/10 dark:bg-muted/10 space-y-2">
+        {/* Copy Button */}
         <Button
           onClick={handleCopy}
           variant="ghost"
           size="sm"
-          className="w-full h-10 sm:h-9 text-xs sm:text-sm text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors"
+          className="w-full h-9 text-sm text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors rounded-lg"
         >
           {copied ? (
             <>
-              <Check className="mr-2 h-3 w-3 sm:h-4 sm:w-4 text-green-500" />
+              <Check className="mr-2 h-4 w-4 text-green-500" />
               Copied!
             </>
           ) : (
             <>
-              <Copy className="mr-2 h-3 w-3 sm:h-4 sm:w-4" />
-              Copy
+              <Copy className="mr-2 h-4 w-4" />
+              Copy Caption
             </>
           )}
         </Button>
+        
+        {/* Quota Cost Indicator */}
+        <div className="text-xs text-muted-foreground text-center px-2 py-1 bg-muted/20 rounded-md">
+          💡 Each image = 3 unique captions
+        </div>
       </div>
     </div>
   );

@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import dbConnect from '@/lib/db';
 import User from '@/models/User';
-import { deleteImageFromImageKitByUrl } from '@/lib/imagekit-utils';
+import { archiveCloudinaryImage, extractCloudinaryPublicId } from '@/lib/cloudinary';
 
 export async function POST(request: NextRequest) {
   try {
@@ -37,10 +37,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Delete existing image from ImageKit if it exists
+    // Archive existing image from Cloudinary if it exists
     if (currentUser.image) {
-      console.log(`🗑️ Deleting old profile image from ImageKit: ${currentUser.image}`);
-      await deleteImageFromImageKitByUrl(currentUser.image);
+      console.log(`📁 Archiving old profile image: ${currentUser.image}`);
+      try {
+        // Extract public ID from Cloudinary URL
+        const publicId = extractCloudinaryPublicId(currentUser.image);
+        if (publicId) {
+          const archiveResult = await archiveCloudinaryImage(publicId, session.user.id);
+          if (archiveResult.success) {
+            console.log(`✅ Old profile image archived successfully: ${archiveResult.archivedId}`);
+          } else {
+            console.warn(`⚠️ Failed to archive old profile image: ${archiveResult.error}`);
+          }
+        } else {
+          console.warn(`⚠️ Could not extract public ID from URL: ${currentUser.image}`);
+        }
+      } catch (error) {
+        console.warn(`⚠️ Failed to archive old profile image: ${error.message}`);
+        // Continue with update even if archiving fails
+      }
     }
 
     // Update user's profile image
@@ -99,10 +115,26 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Delete existing image from ImageKit if it exists
+    // Archive existing image from Cloudinary if it exists
     if (currentUser.image) {
-      console.log(`🗑️ Deleting profile image from ImageKit: ${currentUser.image}`);
-      await deleteImageFromImageKitByUrl(currentUser.image);
+      console.log(`📁 Archiving profile image: ${currentUser.image}`);
+      try {
+        // Extract public ID from Cloudinary URL
+        const publicId = extractCloudinaryPublicId(currentUser.image);
+        if (publicId) {
+          const archiveResult = await archiveCloudinaryImage(publicId, session.user.id);
+          if (archiveResult.success) {
+            console.log(`✅ Profile image archived successfully: ${archiveResult.archivedId}`);
+          } else {
+            console.warn(`⚠️ Failed to archive profile image: ${archiveResult.error}`);
+          }
+        } else {
+          console.warn(`⚠️ Could not extract public ID from URL: ${currentUser.image}`);
+        }
+      } catch (error) {
+        console.warn(`⚠️ Failed to archive profile image: ${error.message}`);
+        // Continue with removal even if archiving fails
+      }
     }
 
     // Remove user's profile image
@@ -123,7 +155,8 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'Profile image removed successfully'
+      message: 'Profile image removed successfully',
+      note: 'Previous image has been safely archived'
     });
 
   } catch (error) {

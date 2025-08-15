@@ -204,10 +204,17 @@ async function handleInitialize() {
       const newRole = {
         name: 'admin',
         displayName: 'Administrator',
+        description: 'System administrator with full access',
         permissions: [
-          'user:read', 'user:write', 'user:delete',
-          'admin:read', 'admin:write', 'admin:delete',
-          'system:read', 'system:write', 'system:delete'
+          { resource: 'users', actions: ['create', 'read', 'update', 'delete', 'manage'] },
+          { resource: 'roles', actions: ['create', 'read', 'update', 'delete', 'manage'] },
+          { resource: 'posts', actions: ['create', 'read', 'update', 'delete', 'manage'] },
+          { resource: 'captions', actions: ['create', 'read', 'update', 'delete', 'manage'] },
+          { resource: 'data-recovery', actions: ['create', 'read', 'update', 'delete', 'manage'] },
+          { resource: 'archived-profiles', actions: ['create', 'read', 'update', 'delete', 'manage'] },
+          { resource: 'dashboard', actions: ['create', 'read', 'update', 'delete', 'manage'] },
+          { resource: 'system', actions: ['create', 'read', 'update', 'delete', 'manage'] },
+          { resource: 'analytics', actions: ['create', 'read', 'update', 'delete', 'manage'] }
         ],
         isSystem: true,
         isActive: true,

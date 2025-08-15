@@ -1,3 +1,4 @@
+import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -5,7 +6,11 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { HelpCircle, Search, MessageSquare, Book, Video, Mail, Phone, Clock, CheckCircle } from 'lucide-react';
 
-export default function SupportPage() {
+export default function SupportCenterPage() {
+  // Redirect to feature development page
+  redirect('/feature-development');
+
+  // Original support center code (this won't execute due to redirect, but kept for future use)
   const quickHelp = [
     {
       title: 'Getting Started',
@@ -107,7 +112,7 @@ export default function SupportPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background relative overflow-hidden">
       {/* Hero Section */}
       <section className="py-20 px-4">
         <div className="container mx-auto text-center max-w-3xl px-6">

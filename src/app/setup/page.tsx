@@ -38,174 +38,123 @@ export default function AdminSetup() {
   const [isGettingToken, setIsGettingToken] = useState(false);
   const [tokenRequestMessage, setTokenRequestMessage] = useState('');
 
-  // STRICT PROTOCOL: If user is already authenticated as admin, redirect immediately
+  // Simplified authentication check - only redirect if already admin
   useEffect(() => {
-    if (status === 'loading') return; // Wait for session to load
-
     if (status === 'authenticated' && session?.user?.role?.name === 'admin') {
-      console.log('ℹ️ Setup page - User is authenticated admin, redirecting to dashboard');
+      console.log('✅ User is already admin, redirecting to dashboard');
       router.replace('/admin/dashboard');
-      return;
     }
   }, [session, status, router]);
 
-  // Check if admin system is already set up
-  useEffect(() => {
-    if (status === 'unauthenticated') {
-      // Add timeout to prevent infinite loading
-      const timeoutId = setTimeout(() => {
-        console.log('⏰ Admin status check timeout, proceeding with setup');
-        setAdminExists(false);
-      }, 5000); // 5 second timeout
-      
-      checkAdminStatus().finally(() => {
-        clearTimeout(timeoutId);
-      });
-    }
-  }, [status]);
-
-  // STRICT PROTOCOL: Show loading while checking admin status
+  // Simple loading state - only show while session is loading
   if (status === 'loading') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
         <div className="text-center text-white">
           <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
-          <p className="text-sm sm:text-base">Checking system status...</p>
+          <p className="text-sm sm:text-base">Loading...</p>
         </div>
       </div>
     );
   }
 
-  // STRICT PROTOCOL: If authenticated as admin, don't render anything (will redirect)
+  // Don't render if already authenticated as admin
   if (status === 'authenticated' && session?.user?.role?.name === 'admin') {
     return null;
   }
 
-  const checkAdminStatus = async () => {
+  // Verify setup token
+  const handleTokenVerification = async () => {
+    if (!setupToken.trim()) {
+      setError('Please enter the setup token');
+      return;
+    }
+
+    // Basic JWT format validation
+    if (!setupToken.includes('.') || setupToken.split('.').length !== 3) {
+      setError('Invalid JWT format. Token should have 3 parts separated by dots.');
+      return;
+    }
+
+    // Check token length (JWT tokens are typically very long)
+    if (setupToken.length < 100) {
+      setError('Token seems too short. Please ensure you copied the complete JWT token.');
+      return;
+    }
+
+    console.log('🔐 Attempting to verify token...');
+
+    setIsVerifying(true);
+    setError('');
+    setSuccess('');
+
     try {
-      console.log('🔍 Checking admin system status...');
-      const response = await fetch('/api/admin/setup');
-      
-      if (response.ok) {
-        const data = await response.json();
-        console.log('✅ Admin status check successful:', data);
-        setAdminExists(data.existingAdmin || false);
+      const response = await fetch('/api/admin/setup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'verify-token', token: setupToken })
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setTokenVerified(true);
+        setSuccess('Token verified successfully!');
+        setError('');
         
+        // Check if admin exists
         if (data.existingAdmin) {
-          setStep('options');
+          setAdminExists(true);
         }
+        
+        setTimeout(() => {
+          setSuccess('');
+          setStep('options');
+        }, 1000);
       } else {
-        console.log('⚠️ Admin status check failed:', response.status);
-        setAdminExists(false);
+        setError(data.message || 'Token verification failed');
       }
     } catch (error) {
-      console.error('❌ Failed to check admin status:', error);
-      setAdminExists(false);
+      console.error('Token verification error:', error);
+      setError('Failed to verify token. Please try again.');
+    } finally {
+      setIsVerifying(false);
     }
   };
 
-     // Verify setup token
-   const handleTokenVerification = async () => {
-     if (!setupToken.trim()) {
-       setError('Please enter the setup token');
-       return;
-     }
+  // Handle token request for production
+  const handleGetToken = async () => {
+    setIsGettingToken(true);
+    setError('');
+    setSuccess('');
+    setTokenRequestMessage('');
+    
+    try {
+      const response = await fetch('/api/admin/request-setup-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: 'sunnyshinde2601@gmail.com' // Only this email is authorized
+        })
+      });
 
-     // Basic JWT format validation
-     if (!setupToken.includes('.') || setupToken.split('.').length !== 3) {
-       setError('Invalid JWT format. Token should have 3 parts separated by dots.');
-       return;
-     }
+      const data = await response.json();
 
-     // Check token length (JWT tokens are typically very long)
-     if (setupToken.length < 100) {
-       setError('Token seems too short. Please ensure you copied the complete JWT token.');
-       return;
-     }
-
-     console.log('🔐 Attempting to verify token:', {
-       tokenLength: setupToken.length,
-       tokenStart: setupToken.substring(0, 20) + '...',
-       tokenEnd: '...' + setupToken.substring(setupToken.length - 20)
-     });
-
-     setIsVerifying(true);
-     setError('');
-     setSuccess('');
-
-     // Add timeout for faster response
-     const timeoutPromise = new Promise((_, reject) => {
-       setTimeout(() => reject(new Error('Request timeout')), 10000); // 10 second timeout
-     });
-
-     try {
-       const verificationPromise = fetch('/api/admin/setup', {
-         method: 'POST',
-         headers: { 'Content-Type': 'application/json' },
-         body: JSON.stringify({ action: 'verify-token', token: setupToken })
-       });
-
-       // Race between timeout and actual request
-       const response = await Promise.race([verificationPromise, timeoutPromise]) as Response;
-       const data = await response.json();
-
-       if (response.ok && data.success) {
-         setTokenVerified(true);
-         setSuccess('Token verified successfully!');
-         setError('');
-         
-         setTimeout(() => {
-           setSuccess('');
-           setStep('options');
-         }, 1000); // Reduced to 1 second
-       } else {
-         setError(data.message || 'Token verification failed');
-       }
-     } catch (error) {
-       console.error('Token verification error:', error);
-       if (error instanceof Error && error.message === 'Request timeout') {
-         setError('Token verification timed out. Please try again.');
-       } else {
-         setError('Failed to verify token. Please try again.');
-       }
-     } finally {
-       setIsVerifying(false);
-     }
-   };
-
-   // Handle token request for production
-   const handleGetToken = async () => {
-     setIsGettingToken(true);
-     setError('');
-     setSuccess(''); // Clear any previous success message
-     setTokenRequestMessage('');
-     
-     try {
-       const response = await fetch('/api/admin/request-setup-token', {
-         method: 'POST',
-         headers: { 'Content-Type': 'application/json' },
-         body: JSON.stringify({
-           email: 'sunnyshinde2601@gmail.com' // Only this email is authorized
-         })
-       });
-
-       const data = await response.json();
-
-       if (response.ok && data.success) {
-         setTokenRequestMessage('✅ Token generated and sent to admin email. Please check your email and paste the token below.');
-         setSuccess(''); // Clear any previous success message
-       } else {
-         setError(data.message || 'Failed to generate token. Please try again.');
-         setTokenRequestMessage('❌ Token generation failed. Please try again or contact system administrator.');
-       }
-     } catch (error) {
-       console.error('❌ Error requesting token:', error);
-       setError('Failed to request token. Please check your connection and try again.');
-       setTokenRequestMessage('❌ Network error. Please check your connection and try again.');
-     } finally {
-       setIsGettingToken(false);
-     }
-   };
+      if (response.ok && data.success) {
+        setTokenRequestMessage('✅ Token generated and sent to admin email. Please check your email and paste the token below.');
+        setSuccess('');
+      } else {
+        setError(data.message || 'Failed to generate token. Please try again.');
+        setTokenRequestMessage('❌ Token generation failed. Please try again or contact system administrator.');
+      }
+    } catch (error) {
+      console.error('❌ Error requesting token:', error);
+      setError('Failed to request token. Please check your connection and try again.');
+      setTokenRequestMessage('❌ Network error. Please check your connection and try again.');
+    } finally {
+      setIsGettingToken(false);
+    }
+  };
 
   // Handle admin signup
   const handleSignup = async () => {

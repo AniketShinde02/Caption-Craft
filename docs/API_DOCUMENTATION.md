@@ -522,6 +522,256 @@ Send promotional emails (admin only).
 }
 ```
 
+### **8. Enhanced Role Management Endpoints**
+
+#### **GET /api/admin/roles/[id]**
+Get individual role details (admin only).
+
+**Response:**
+```json
+{
+  "role": {
+    "id": "role-id",
+    "name": "Moderator",
+    "displayName": "Content Moderator",
+    "description": "Can moderate content and manage users",
+    "permissions": [
+      {
+        "resource": "users",
+        "actions": ["read", "update"]
+      },
+      {
+        "resource": "content",
+        "actions": ["read", "update", "delete"]
+      }
+    ],
+    "isSystem": false,
+    "createdAt": "2024-01-01T00:00:00Z",
+    "updatedAt": "2024-01-01T00:00:00Z"
+  }
+}
+```
+
+#### **PUT /api/admin/roles/[id]**
+Update existing role (admin only).
+
+**Request Body:**
+```json
+{
+  "displayName": "Senior Moderator",
+  "description": "Advanced content moderation with user management",
+  "permissions": [
+    {
+      "resource": "users",
+      "actions": ["read", "update", "delete"]
+    },
+    {
+      "resource": "content",
+      "actions": ["read", "update", "delete"]
+    },
+    {
+      "resource": "system",
+      "actions": ["read"]
+    }
+  ]
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "role": {
+    "id": "role-id",
+    "name": "moderator",
+    "displayName": "Senior Moderator",
+    "updatedAt": "2024-01-01T00:00:00Z"
+  },
+  "message": "Role updated successfully"
+}
+```
+
+#### **DELETE /api/admin/roles/[id]**
+Delete role (admin only, cannot delete system roles).
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Role deleted successfully"
+}
+```
+
+**Note**: System roles (admin, user) cannot be deleted.
+
+### **9. Data Export Endpoints**
+
+#### **POST /api/admin/export**
+Generate and export data reports (admin only).
+
+**Request Body:**
+```json
+{
+  "type": "user-summary", // user-summary, role-summary, system-status
+  "format": "csv" // json, csv
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": "csv-content-here",
+  "filename": "user-summary-2024-01-01.csv",
+  "message": "Export generated successfully"
+}
+```
+
+**Available Report Types:**
+- **user-summary**: User statistics and role assignments
+- **role-summary**: Role permissions and user counts
+- **system-status**: System health and performance metrics
+
+### **10. Enhanced User Management Endpoints**
+
+#### **POST /api/admin/users**
+Create new user (admin only).
+
+**Request Body:**
+```json
+{
+  "email": "newuser@example.com",
+  "password": "securepassword123",
+  "username": "newuser",
+  "role": "user"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "user": {
+    "id": "new-user-id",
+    "email": "newuser@example.com",
+    "username": "newuser",
+    "role": "user",
+    "createdAt": "2024-01-01T00:00:00Z"
+  },
+  "message": "User created successfully"
+}
+```
+
+### **11. Enhanced System Monitoring Endpoints**
+
+#### **GET /api/admin/alerts**
+Get system alerts and health metrics (admin only).
+
+**Response:**
+```json
+{
+  "systemHealth": {
+    "uptime": 99.8,
+    "responseTime": 45,
+    "memoryUsage": 65.2,
+    "cpuUsage": 23.1,
+    "diskUsage": 45.8,
+    "activeConnections": 12
+  },
+  "alerts": [
+    {
+      "id": "alert-id",
+      "type": "warning",
+      "message": "High memory usage detected",
+      "severity": "medium",
+      "createdAt": "2024-01-01T00:00:00Z",
+      "acknowledged": false
+    }
+  ]
+}
+```
+
+#### **GET /api/admin/database/stats**
+Get comprehensive database statistics (admin only).
+
+**Response:**
+```json
+{
+  "stats": {
+    "totalCollections": 8,
+    "totalDocuments": 1250,
+    "totalSize": "2.8GB",
+    "totalIndexes": 24,
+    "activeConnections": 12,
+    "maxConnections": 100,
+    "connectionUtilization": 12,
+    "avgResponseTime": 23,
+    "uptime": 99.5,
+    "collections": [
+      {
+        "name": "users",
+        "documentCount": 150,
+        "size": "1.2MB",
+        "indexes": 3,
+        "lastModified": "2024-01-01T00:00:00Z",
+        "status": "healthy",
+        "avgDocumentSize": "8KB"
+      }
+    ]
+  }
+}
+```
+
+### **12. Enhanced Image Management Endpoints**
+
+#### **GET /api/admin/images**
+Get all images with metadata (admin only).
+
+**Response:**
+```json
+{
+  "images": [
+    {
+      "id": "image-id",
+      "url": "https://imagekit.io/...",
+      "thumbnail": "https://imagekit.io/...",
+      "uploadedBy": "user@example.com",
+      "uploadDate": "2024-01-01T00:00:00Z",
+      "size": "2.5MB",
+      "dimensions": "1920x1080",
+      "format": "JPEG",
+      "accessCount": 45,
+      "status": "active"
+    }
+  ],
+  "storageMetrics": {
+    "totalImages": 450,
+    "totalSizeMB": 1250.5,
+    "availableStorage": "50GB",
+    "storageUsed": "2.5%"
+  }
+}
+```
+
+#### **POST /api/admin/images/[id]/moderate**
+Moderate image (admin only).
+
+**Request Body:**
+```json
+{
+  "action": "approve", // approve, reject, flag
+  "reason": "Content meets guidelines"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Image moderated successfully"
+}
+```
+
 ## 🔧 **Utility Endpoints**
 
 ### **1. Contact Endpoint**

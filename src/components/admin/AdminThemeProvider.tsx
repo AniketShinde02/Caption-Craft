@@ -11,13 +11,10 @@ export default function AdminThemeProvider({
     <ThemeProvider
       attribute="class"
       defaultTheme="dark"
-      enableSystem={false}
-      disableTransitionOnChange
-      forcedTheme="dark"
+      enableSystem={true}
+      disableTransitionOnChange={false}
     >
-      <div className="dark">
-        {children}
-      </div>
+      {children}
     </ThemeProvider>
   );
 }

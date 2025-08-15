@@ -2,13 +2,20 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { connectToDatabase } from '@/lib/db';
+import { canManageAdmins } from '@/lib/init-admin';
 
 export async function GET(request: NextRequest) {
   try {
     // Check authentication
     const session = await getServerSession(authOptions);
-    if (!session?.user || session.user.role?.name !== 'admin') {
+    if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Check if user can manage admins
+    const canManage = await canManageAdmins(session.user.id);
+    if (!canManage) {
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
     const { db } = await connectToDatabase();
@@ -20,23 +27,33 @@ export async function GET(request: NextRequest) {
     // Check database health
     const dbHealth = await db.admin().ping().then(() => 'healthy').catch(() => 'warning');
     
-    // Get real user activity
-    const activeUsers = await db.collection('users').countDocuments({ 
+    // Get real user activity from both collections
+    const activeRegularUsers = await db.collection('users').countDocuments({ 
       lastActivityAt: { $gte: new Date(Date.now() - 5 * 60 * 1000) },
       isDeleted: { $ne: true }
     });
+    
+    const activeAdminUsers = await db.collection('adminusers').countDocuments({ 
+      lastActivityAt: { $gte: new Date(Date.now() - 5 * 60 * 1000) },
+      status: 'active'
+    });
+    
+    const activeUsers = activeRegularUsers + activeAdminUsers;
 
     // Get database stats
     const dbStats = await db.stats().catch(() => null);
     const memoryUsage = dbStats ? Math.round((dbStats.dataSize / (1024 * 1024 * 1024)) * 100) : 0;
     
-    // Calculate response time (simulate)
-    const responseTime = Math.random() * 100 + 50; // 50-150ms range
+    // Calculate response time (more realistic simulation)
+    const baseResponseTime = 50; // Base response time in ms
+    const loadFactor = Math.min(activeUsers / 100, 2); // Load factor based on active users
+    const randomVariation = Math.random() * 30 - 15; // ±15ms random variation
+    const responseTime = Math.max(baseResponseTime + (loadFactor * 20) + randomVariation, 20); // Minimum 20ms
     
     const systemHealth = {
       status: dbHealth === 'healthy' ? 'healthy' : 'warning',
       uptime: `${uptime} hours`,
-      responseTime: Math.round(responseTime * 1000000) / 1000000, // Keep precision
+      responseTime: Math.round(responseTime), // Round to nearest millisecond
       activeUsers,
       databaseConnections: dbStats?.connections?.current || 0,
       memoryUsage: Math.round(memoryUsage * 100) / 100,

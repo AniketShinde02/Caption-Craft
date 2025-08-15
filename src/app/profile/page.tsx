@@ -556,15 +556,7 @@ export default function ProfilePage() {
                             <CardContent className="p-4 md:p-6">
                                 <h2 className="text-lg md:text-xl font-semibold mb-4 md:mb-6">Profile Settings</h2>
                                 
-                                {/* Inline Message Display */}
-                                {inlineMessage && (
-                                    <InlineMessage
-                                        type={inlineMessage.type}
-                                        message={inlineMessage.message}
-                                        onDismiss={() => setInlineMessage(null)}
-                                        className="mb-4"
-                                    />
-                                )}
+
                                 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                                     {/* Full Name */}
@@ -918,7 +910,7 @@ export default function ProfilePage() {
                                                              <div className="flex justify-end pt-4 border-t">
                                                                  {post.captions && post.captions.length > 0 && post.captions[0].trim() !== '' && (
                                                                      <Button 
-                                                                         className="bg-primary hover:bg-primary/90"
+                                                                         className="bg-primary hover:bg-primary/95"
                                                                          size="sm"
                                                                          onClick={async () => {
                                                                              // Prevent multiple rapid clicks

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Sparkles, Twitter, Linkedin, Github, Heart } from 'lucide-react';
+import { Sparkles, Twitter, Linkedin, Github, Heart, MessageCircle, Instagram } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 
 export default function Footer() {
@@ -17,17 +17,24 @@ export default function Footer() {
   }
 
   return (
-    <footer className="bg-muted/10 border-t border-border/50">
+    <footer className="bg-[#E3E1D9]/80 dark:bg-muted/10 border-t border-[#C7C8CC]/60 dark:border-border/50">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 md:py-16">
         {/* Main Footer Content - Mobile First */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 sm:gap-10">
           {/* Brand Section - Mobile First */}
           <div className="col-span-12 lg:col-span-3 text-center lg:text-left">
             <Link className="flex items-center gap-2 mb-3 sm:mb-4 justify-center lg:justify-start" href="/">
-              <div className="bg-primary p-2 rounded-lg">
-                <Sparkles className="h-5 w-5 text-primary-foreground" />
+              <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center">
+                <img 
+                  src="/favicon.svg" 
+                  alt="Capsera Logo" 
+                  className="w-full h-full object-contain"
+                  style={{
+                    filter: 'var(--logo-filter)'
+                  }}
+                />
               </div>
-              <h1 className="text-xl font-bold tracking-tight">CaptionCraft</h1>
+              <h1 className="text-xl font-bold tracking-tight">Capsera</h1>
             </Link>
             <p className="text-muted-foreground text-sm mb-4 sm:mb-6 max-w-xs mx-auto lg:mx-0 leading-relaxed">
               AI-powered caption generation to supercharge your social media presence.
@@ -35,14 +42,17 @@ export default function Footer() {
             
             {/* Social Links - Mobile First */}
             <div className="flex gap-3 justify-center lg:justify-start">
-              <Link href="https://twitter.com/captioncraft" className="w-10 h-10 sm:w-9 sm:h-9 bg-muted rounded-lg flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-all duration-200">
+              <Link href="https://x.com/24_jinwoo" className="w-10 h-10 sm:w-9 sm:h-9 bg-muted rounded-lg flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-all duration-200" title="Follow us on X">
                 <Twitter className="w-4 h-4" />
               </Link>
-              <Link href="https://linkedin.com/company/captioncraft" className="w-10 h-10 sm:w-9 sm:h-9 bg-muted rounded-lg flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-all duration-200">
-                <Linkedin className="w-4 h-4" />
+              <Link href="https://www.instagram.com/introvert_ani.26/" className="w-10 h-10 sm:w-9 sm:h-9 bg-muted rounded-lg flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-all duration-200" title="Follow us on Instagram">
+                <Instagram className="w-4 h-4" />
               </Link>
-              <Link href="https://github.com/captioncraft" className="w-10 h-10 sm:w-9 sm:h-9 bg-muted rounded-lg flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-all duration-200">
+              <Link href="https://github.com/AniketShinde02" className="w-10 h-10 sm:w-9 sm:h-9 bg-muted rounded-lg flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-all duration-200" title="Check out our GitHub">
                 <Github className="w-4 h-4" />
+              </Link>
+              <Link href="https://discord.gg/Vkzca8Pdhf" className="w-10 h-10 sm:w-9 sm:h-9 bg-muted rounded-lg flex items-center justify-center hover:bg-primary hover:text-primary-foreground transition-all duration-200" title="Join our Discord server - Chill Zone">
+                <MessageCircle className="w-4 h-4" />
               </Link>
             </div>
           </div>
@@ -95,7 +105,7 @@ export default function Footer() {
         {/* Bottom Section - Mobile First */}
         <div className="mt-6 sm:mt-8 border-t border-border/50 pt-6 sm:pt-8 flex flex-col sm:flex-row justify-between items-center text-sm text-muted-foreground gap-4 sm:gap-0">
           <p className="text-center sm:text-left">
-            © 2024 CaptionCraft. All rights reserved.
+                         © 2024 Capsera. All rights reserved.
           </p>
           <div className="flex items-center gap-1 text-center">
             Made with <Heart className="w-4 h-4 text-red-500 fill-current" /> for creators worldwide

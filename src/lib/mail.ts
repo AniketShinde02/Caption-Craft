@@ -28,23 +28,28 @@ export async function sendPasswordResetEmail(to: string, resetUrl: string) {
     return { queued: false, logged: true };
   }
   
-  // Get base URL for production links
-  const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://captioncraft.vercel.app';
+  // Get base URL for production links - require proper configuration
+  const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL;
+  if (!baseUrl) {
+    console.error('❌ Missing NEXTAUTH_URL or NEXT_PUBLIC_APP_URL environment variable');
+    return { queued: false, error: 'Missing app URL configuration' };
+  }
+  
   const productionResetUrl = resetUrl.replace(/http:\/\/localhost:\d+/, baseUrl);
   
   try {
     const info = await transporter.sendMail({
-      from: `CaptionCraft <${from}>`,
+      from: `Capsera <${from}>`,
       to,
-      subject: '🔐 Reset Your CaptionCraft Password - Action Required',
-      text: `Hi there!\n\nWe received a request to reset your CaptionCraft password.\n\nTo reset your password, click this link (valid for 1 hour):\n${productionResetUrl}\n\n⚠️ If this email landed in your spam folder, please mark it as "Not Spam" to ensure you receive future communications from us.\n\nIf you didn't request this password reset, you can safely ignore this email. Your password will remain unchanged.\n\nBest regards,\nThe CaptionCraft Team\n\n---\nCaptionCraft - AI-Powered Caption Generation\nhttps://captioncraft.com`,
+      subject: '🔐 Reset Your Capsera Password - Action Required',
+      text: `Hi there!\n\nWe received a request to reset your Capsera password.\n\nTo reset your password, click this link (valid for 1 hour):\n${productionResetUrl}\n\n⚠️ If this email landed in your spam folder, please mark it as "Not Spam" to ensure you receive future communications from us.\n\nIf you didn't request this password reset, you can safely ignore this email. Your password will remain unchanged.\n\nBest regards,\nThe Capsera Team\n\n---\nCapsera - AI-Powered Caption Generation\n${baseUrl}`,
       html: `
         <!DOCTYPE html>
         <html lang="en">
         <head>
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1">
-          <title>Reset Your CaptionCraft Password</title>
+          <title>Reset Your Capsera Password</title>
         </head>
         <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f8fafc;">
           <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);">
@@ -53,9 +58,15 @@ export async function sendPasswordResetEmail(to: string, resetUrl: string) {
             <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 32px; text-align: center;">
               <div style="display: inline-flex; align-items: center; gap: 12px; margin-bottom: 16px;">
                 <div style="background: rgba(255, 255, 255, 0.2); padding: 8px; border-radius: 8px;">
-                  <div style="width: 24px; height: 24px; color: white; font-size: 20px;">✨</div>
+                  <img 
+                    src="https://ai-caption-generator-pied.vercel.app/favicon.svg" 
+                    alt="Capsera Logo" 
+                    width="24" 
+                    height="24" 
+                    style="filter: brightness(0) invert(1);"
+                  />
                 </div>
-                <h1 style="margin: 0; color: white; font-size: 24px; font-weight: 700;">CaptionCraft</h1>
+                <h1 style="margin: 0; color: white; font-size: 24px; font-weight: 700;">Capsera</h1>
               </div>
               <p style="margin: 0; color: rgba(255, 255, 255, 0.9); font-size: 16px;">AI-Powered Caption Generation</p>
             </div>
@@ -67,7 +78,7 @@ export async function sendPasswordResetEmail(to: string, resetUrl: string) {
               <p style="margin: 0 0 24px 0; color: #4b5563; font-size: 16px; line-height: 1.6;">Hello there!</p>
               
               <p style="margin: 0 0 24px 0; color: #4b5563; font-size: 16px; line-height: 1.6;">
-                We received a request to reset your CaptionCraft password. To proceed with resetting your password, please click the button below.
+                We received a request to reset your Capsera password. To proceed with resetting your password, please click the button below.
               </p>
               
               <!-- CTA Button -->
@@ -188,7 +199,12 @@ export async function sendContactConfirmationEmail(data: ContactConfirmationData
     return { queued: false, logged: true };
   }
 
-  const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://captioncraft.vercel.app';
+  // Get base URL - require proper configuration
+  const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL;
+  if (!baseUrl) {
+    console.error('❌ Missing NEXTAUTH_URL or NEXT_PUBLIC_APP_URL environment variable');
+    return { queued: false, error: 'Missing app URL configuration' };
+  }
 
   try {
     const info = await transporter.sendMail({
@@ -313,7 +329,13 @@ export async function sendWelcomeEmail(data: WelcomeEmailData) {
     return { queued: false, logged: true };
   }
 
-  const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://captioncraft.vercel.app';
+  // Get base URL - require proper configuration
+  const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL;
+  if (!baseUrl) {
+    console.error('❌ Missing NEXTAUTH_URL or NEXT_PUBLIC_APP_URL environment variable');
+    return { queued: false, error: 'Missing app URL configuration' };
+  }
+
   const displayName = data.name || data.username || data.email.split('@')[0];
 
   try {
@@ -442,7 +464,13 @@ export async function sendPromotionalEmail(data: PromotionalEmailData) {
     return { queued: false, logged: true };
   }
 
-  const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://captioncraft.vercel.app';
+  // Get base URL - require proper configuration
+  const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL;
+  if (!baseUrl) {
+    console.error('❌ Missing NEXTAUTH_URL or NEXT_PUBLIC_APP_URL environment variable');
+    return { queued: false, error: 'Missing app URL configuration' };
+  }
+
   const displayName = data.name || data.username || data.email.split('@')[0];
   const unsubscribeUrl = `${baseUrl}/unsubscribe?token=${data.unsubscribeToken}`;
 
@@ -579,7 +607,12 @@ export async function sendRequestConfirmationEmail(data: RequestConfirmationData
     return { queued: false, logged: true };
   }
 
-  const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://captioncraft.vercel.app';
+  // Get base URL - require proper configuration
+  const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL;
+  if (!baseUrl) {
+    console.error('❌ Missing NEXTAUTH_URL or NEXT_PUBLIC_APP_URL environment variable');
+    return { queued: false, error: 'Missing app URL configuration' };
+  }
   
   // Map request types to friendly names
   const requestTypeNames = {

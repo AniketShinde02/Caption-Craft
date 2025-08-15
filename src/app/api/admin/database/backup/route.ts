@@ -7,8 +7,15 @@ export async function POST(request: NextRequest) {
   try {
     // Check authentication
     const session = await getServerSession(authOptions);
-    if (!session?.user || session.user.role?.name !== 'admin') {
+    if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    
+    // Import and use proper permission check
+    const { canManageAdmins } = await import('@/lib/init-admin');
+    const canManage = await canManageAdmins(session.user.id);
+    if (!canManage) {
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
     const { db } = await connectToDatabase();

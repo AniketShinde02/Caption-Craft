@@ -25,7 +25,12 @@ const pass = process.env.SMTP_PASS;
 const from = process.env.SMTP_FROM || process.env.EMAIL_FROM || user;
 
 // Base URL
-const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://captioncraft.vercel.app';
+const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL;
+if (!baseUrl) {
+  console.error('❌ Missing NEXTAUTH_URL or NEXT_PUBLIC_APP_URL environment variable');
+  console.error('Please set one of these environment variables to test email templates');
+  process.exit(1);
+}
 
 // Create test email transporter
 const transporter = (host && port && user && pass)

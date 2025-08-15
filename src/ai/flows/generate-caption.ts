@@ -9,7 +9,7 @@
  * - GenerateCaptionsOutput - The return type for the generateCaptionsOutput function.
  */
 
-import {ai, isAIConfigured} from '@/ai/genkit';
+import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import dbConnect from '@/lib/db';
 import { Types } from 'mongoose';
@@ -25,6 +25,7 @@ const GenerateCaptionsInputSchema = z.object({
       'A description of the photo or video for which to generate captions.'
     ),
   imageUrl: z.string().describe('The URL of the uploaded image (required for analysis).'),
+  publicId: z.string().optional().describe('The Cloudinary public ID for image deletion.'),
   userId: z.string().optional().describe("The ID of the user generating the captions."),
   ipAddress: z.string().optional().describe("The IP address of the user (for rate limiting)."),
 });
@@ -38,11 +39,7 @@ const GenerateCaptionsOutputSchema = z.object({
 export type GenerateCaptionsOutput = z.infer<typeof GenerateCaptionsOutputSchema>;
 
 export async function generateCaptions(input: GenerateCaptionsInput): Promise<GenerateCaptionsOutput> {
-  // Check if AI is properly configured
-  if (!isAIConfigured()) {
-    throw new Error('AI service is not properly configured. Please check your environment variables.');
-  }
-  
+  // Direct call to the flow - AI configuration is handled by the key rotation system
   return generateCaptionsFlow(input);
 }
 
@@ -169,16 +166,16 @@ const generateCaptionsFlow = ai.defineFlow(
 
     console.log(`✅ Rate limit check passed. Remaining: ${rateLimitResult.remaining}/${rateLimitConfig.MAX_GENERATIONS}`);
 
-    // 🤖 CRITICAL FIX: Use Genkit's proper image analysis method
-    console.log('🤖 Sending image to AI for analysis using Genkit...');
-    console.log('🔑 API Key check:', !!process.env.GOOGLE_API_KEY ? 'Present' : 'Missing');
-    console.log('🔑 API Key length:', process.env.GOOGLE_API_KEY?.length || 0);
+         // 🤖 CRITICAL FIX: Use Genkit's proper image analysis method
+     console.log('🤖 Sending image to AI for analysis using Genkit...');
+     // API Key check is now handled by the Gemini key rotation system in genkit.ts
+     console.log('🔑 Using Gemini key rotation system (configured in genkit.ts)');
     
     let output: any; // Declare output in outer scope
     
-    try {
-      // Use Genkit's generate method with proper image handling for Gemini
-      const result = await ai.generate([
+              try {
+       // Use Genkit's generate method with proper image handling for Gemini
+       const result = await ai.generate([
       {
         text: `You are an expert social media content creator and image analyst specializing in viral captions for Gen Z audiences.
 
@@ -318,37 +315,65 @@ const generateCaptionsFlow = ai.defineFlow(
     console.log('📝 Raw AI Output:', output);
     console.log('📝 AI Output Type:', typeof output);
     console.log('📝 Is Array?', Array.isArray(output));
+    console.log('📝 Has text property?', !!output?.text);
+    console.log('📝 Text content:', output?.text ? output.text.substring(0, 200) + '...' : 'No text');
     
     let captions: string[] = [];
     
-    // Check if output is already an array of captions (which it is!)
-    if (Array.isArray(output)) {
-      captions = output;
-      console.log('🎯 Direct array output detected, using as captions');
-    } else if (output?.text) {
-      // Fallback: if output has text property, try to parse it
-      try {
-        const parsed = JSON.parse(output.text);
-        if (Array.isArray(parsed)) {
-          captions = parsed;
-        } else {
-          const lines = output.text.split('\n').filter((line: string) => line.trim());
-          captions = lines.slice(0, 3);
-        }
-      } catch (error) {
-        const lines = output.text.split('\n').filter((line: string) => line.trim());
-        captions = lines.slice(0, 3);
-      }
-    }
+         // Genkit output structure: result.output.text contains the generated text
+     if (output?.text) {
+       console.log('🎯 Genkit text output detected, parsing...');
+       
+       // Try to parse as JSON first (in case it's structured)
+       try {
+         const parsed = JSON.parse(output.text);
+         if (Array.isArray(parsed)) {
+           captions = parsed;
+           console.log('✅ Parsed as JSON array successfully');
+         } else {
+           console.log('⚠️ Parsed as JSON but not an array, using as single text');
+           // Split by newlines and filter empty lines
+           const lines = output.text.split('\n').filter((line: string) => line.trim());
+           captions = lines.slice(0, 3);
+         }
+       } catch (error) {
+         console.log('📝 Not JSON, splitting by newlines...');
+         // Split by newlines and filter empty lines
+         const lines = output.text.split('\n').filter((line: string) => line.trim());
+         captions = lines.slice(0, 3);
+         console.log(`📝 Extracted ${captions.length} lines from text`);
+       }
+     } else if (Array.isArray(output)) {
+       // Direct array output (fallback)
+       console.log('🎯 Direct array output detected, processing...');
+       
+       // Handle different array formats
+       if (output.length > 0 && typeof output[0] === 'object' && output[0].caption) {
+         // Format: [{caption: "...", style: "..."}, ...]
+         console.log('🎯 Object array with caption property detected');
+         captions = output.map((item: any) => item.caption || item.text || String(item));
+         console.log('✅ Extracted captions from object array');
+       } else if (output.length > 0 && typeof output[0] === 'string') {
+         // Format: ["caption1", "caption2", ...]
+         captions = output;
+         console.log('✅ String array detected, using directly');
+       } else {
+         console.log('⚠️ Unknown array format, converting to strings');
+         captions = output.map((item: any) => String(item));
+       }
+     } else {
+       console.error('❌ Unexpected output format:', output);
+       throw new Error('AI generated unexpected output format');
+     }
 
     // Ensure we have exactly 3 captions
     if (captions.length < 3) {
-      // Generate additional captions if needed
-      const additionalPrompt = `Generate ${3 - captions.length} more captions to complete the set. Make sure they are unique and follow the same style as the previous ones.`;
-      const additionalResponse = await ai.generate([
-        { text: additionalPrompt },
-        { media: { url: input.imageUrl } }
-      ]);
+                    // Generate additional captions if needed
+       const additionalPrompt = `Generate ${3 - captions.length} more captions to complete the set. Make sure they are unique and follow the same style as the previous ones.`;
+       const additionalResponse = await ai.generate([
+         { text: additionalPrompt },
+         { media: { url: input.imageUrl } }
+       ]);
       
       if (additionalResponse.output?.text) {
         const additionalLines = additionalResponse.output.text.split('\n').filter((line: string) => line.trim());
@@ -356,71 +381,27 @@ const generateCaptionsFlow = ai.defineFlow(
       }
     }
 
-    // 🎯 ENHANCED DIVERSITY CHECK AND REGENERATION
-    // Check if captions are too similar and regenerate if needed
-    const checkDiversity = (captions: string[]): boolean => {
-      if (captions.length < 2) return true;
-      
-      // Check for similar sentence structures
-      const hasSimilarStructure = captions.some((caption, i) => 
-        captions.slice(i + 1).some(otherCaption => {
-          const words1 = caption.toLowerCase().split(/\s+/);
-          const words2 = otherCaption.toLowerCase().split(/\s+/);
-          const commonWords = words1.filter(word => words2.includes(word));
-          return commonWords.length > 3; // If more than 3 common words, consider similar
-        })
-      );
-      
-      // Check for similar emoji patterns
-      const emojiPatterns = captions.map(caption => 
-        caption.match(/[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu)?.join('') || ''
-      );
-      const hasSimilarEmojis = emojiPatterns.some((pattern, i) => 
-        emojiPatterns.slice(i + 1).some(otherPattern => 
-          pattern === otherPattern || pattern.includes(otherPattern) || otherPattern.includes(pattern)
-        )
-      );
-      
-      return !hasSimilarStructure && !hasSimilarEmojis;
-    };
+         // ⚡ SPEED OPTIMIZATION: Simplified diversity check for faster response
+     const checkDiversity = (captions: string[]) => {
+       if (captions.length < 2) return true;
+       
+       // Quick similarity check - only check first few words
+       const words1 = captions[0].toLowerCase().split(/\s+/).slice(0, 3).filter(word => word.length > 2);
+       const words2 = captions[1].toLowerCase().split(/\s+/).slice(0, 3).filter(word => word.length > 2);
+       const commonWords = words1.filter(word => words2.includes(word));
+       
+       // Only regenerate if captions are very similar
+       return commonWords.length <= 2;
+     };
 
-    // If captions lack diversity, regenerate with enhanced prompt
-    if (!checkDiversity(captions)) {
-      console.log('🔄 Captions lack diversity, regenerating with enhanced prompt...');
-      
-      const diversityPrompt = `The previous captions were too similar. Generate 3 COMPLETELY DIFFERENT captions for this image:
-
-        IMAGE ANALYSIS: ${input.mood} mood, ${input.description ? `Context: ${input.description}` : 'No additional context'}
-        
-        DIVERSITY REQUIREMENTS:
-        - Caption 1: Use a QUESTION format (e.g., "Who else loves this vibe? ✨")
-        - Caption 2: Use a STATEMENT format (e.g., "This is everything I needed today 💫")
-        - Caption 3: Use a COMMAND format (e.g., "Stop scrolling and appreciate this moment 🛑")
-        
-        - Different emoji sets for each caption
-        - Different hashtag themes (trending, aesthetic, personal)
-        - Different sentence lengths and structures
-        - Reference specific visual elements from the image
-        
-        Make each caption feel like it was written by a completely different person!`;
-      
-      try {
-        const diversityResponse = await ai.generate([
-          { text: diversityPrompt },
-          { media: { url: input.imageUrl } }
-        ]);
-        
-        if (diversityResponse.output?.text) {
-          const newCaptions = diversityResponse.output.text.split('\n').filter((line: string) => line.trim());
-          if (newCaptions.length >= 3) {
-            captions = newCaptions.slice(0, 3);
-            console.log('✅ Regenerated diverse captions successfully');
-          }
-        }
-      } catch (error) {
-        console.log('⚠️ Diversity regeneration failed, using original captions');
-      }
-    }
+     // Quick diversity check - skip if taking too long
+     const diversityResult = checkDiversity(captions);
+     console.log('🎯 Quick diversity check result:', diversityResult);
+     
+     // ⚡ SPEED OPTIMIZATION: Skip complex regeneration for speed
+     if (!diversityResult && captions.length >= 3) {
+       console.log('⚠️ Captions are similar but proceeding for speed');
+     }
 
     // Ensure we have exactly 3 captions, pad if necessary
     while (captions.length < 3) {
@@ -430,7 +411,16 @@ const generateCaptionsFlow = ai.defineFlow(
     // Limit to exactly 3 captions
     captions = captions.slice(0, 3);
 
-    console.log(`✅ Generated ${captions.length} captions successfully`);
+    // Validate that we have valid captions
+    if (captions.length === 0 || captions.every(caption => !caption || caption.trim() === '')) {
+      console.error('❌ No valid captions generated');
+      throw new Error('Failed to generate valid captions. Please try again.');
+    }
+
+         console.log(`✅ Generated ${captions.length} captions successfully`);
+     console.log('📝 Final captions:', captions);
+     console.log('📝 Caption types:', captions.map(c => typeof c));
+     console.log('📝 Caption lengths:', captions.map(c => String(c).length));
 
     if (captions.length > 0) {
         try {

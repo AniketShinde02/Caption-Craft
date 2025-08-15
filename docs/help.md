@@ -175,7 +175,7 @@ All email templates are professionally designed with:
 | Variable | Description | Example |
 |----------|-------------|---------|
 | `NEXTAUTH_SECRET` | JWT signing secret | `abc123def456...` |
-| `NEXTAUTH_URL` | App base URL | `https://captioncraft.com` |
+| `NEXTAUTH_URL` | App base URL | `https://ai-caption-generator-pied.vercel.app` |
 | `MONGODB_URI` | Database connection | `mongodb+srv://...` |
 
 ### Optional Variables

@@ -81,7 +81,25 @@ const adminNavItems = [
     title: 'Image Management',
     href: '/admin/images',
     icon: ImageIcon,
-    description: 'Manage ImageKit storage'
+    description: 'Manage Cloudinary storage'
+  },
+  {
+    title: 'API Keys',
+    href: '/admin/keys',
+    icon: Zap,
+    description: 'Manage Gemini API keys and quotas'
+  },
+  {
+    title: 'Cache Management',
+    href: '/admin/cache',
+    icon: Database,
+    description: 'Manage caption cache and optimize API usage'
+  },
+  {
+    title: 'Archive Management',
+    href: '/admin/archives',
+    icon: Archive,
+    description: 'Manage Cloudinary archives and cleanup old files'
   },
   {
     title: 'Admin Settings',
@@ -154,11 +172,32 @@ export default function AdminSidebar() {
           <div className="mt-4 sm:mt-6 lg:mt-8 pt-3 sm:pt-4 lg:pt-6 border-t border-sidebar-border">
             <div className="text-xs text-sidebar-foreground/60 mb-2 hidden sm:block">Quick Actions</div>
             <div className="space-y-1">
-              <button className="w-full text-left px-2 sm:px-3 py-2 text-xs sm:text-sm text-sidebar-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent rounded-lg transition-colors flex items-center gap-2">
+              <button 
+                onClick={() => {
+                  if (confirm('Are you sure you want to lock the system? This will prevent new user registrations and logins.')) {
+                    // TODO: Implement system lock functionality
+                    alert('System lock functionality will be implemented in the next update');
+                  }
+                }}
+                className="w-full text-left px-2 sm:px-3 py-2 text-xs sm:text-sm text-sidebar-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent rounded-lg transition-colors flex items-center gap-2"
+              >
                 <Lock className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
                 <span className="truncate">Lock System</span>
               </button>
-              <button className="w-full text-left px-2 sm:px-3 py-2 text-xs sm:text-sm text-sidebar-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent rounded-lg transition-colors">
+              <button 
+                onClick={() => {
+                  // Navigate to dashboard and trigger export
+                  window.location.href = '/admin/dashboard';
+                  setTimeout(() => {
+                    const exportSelect = document.querySelector('select[onchange*="handleExportReport"]') as HTMLSelectElement;
+                    if (exportSelect) {
+                      exportSelect.value = 'system-status';
+                      exportSelect.dispatchEvent(new Event('change'));
+                    }
+                  }, 1000);
+                }}
+                className="w-full text-left px-2 sm:px-3 py-2 text-xs sm:text-sm text-sidebar-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent rounded-lg transition-colors"
+              >
                 <span className="truncate">📊 Generate Report</span>
               </button>
             </div>

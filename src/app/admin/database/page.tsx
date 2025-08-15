@@ -23,10 +23,21 @@ interface DatabaseStats {
   totalCollections: number;
   totalDocuments: number;
   totalSize: string;
+  totalIndexes: number;
   activeConnections: number;
+  maxConnections: number;
+  connectionUtilization: number;
+  avgResponseTime: number;
+  uptime: number;
   lastBackup: string;
   backupStatus: 'success' | 'failed' | 'pending';
   collections: DatabaseCollection[];
+  performance: {
+    avgResponseTime: number;
+    uptime: number;
+    connectionUtilization: number;
+    totalIndexes: number;
+  };
 }
 
 interface DatabaseCollection {
@@ -36,6 +47,7 @@ interface DatabaseCollection {
   indexes: number;
   lastModified: string;
   status: 'healthy' | 'warning' | 'error';
+  avgDocumentSize: string;
 }
 
 export default function DatabasePage() {
@@ -45,79 +57,40 @@ export default function DatabasePage() {
   const [optimizeInProgress, setOptimizeInProgress] = useState(false);
 
   // Fetch REAL database data
-  useEffect(() => {
-    const fetchDatabaseStats = async () => {
-      try {
-        setLoading(true);
-        
-        // Real API call to get database stats
-        const response = await fetch('/api/admin/database/stats');
-        
-        if (response.ok) {
-          const data = await response.json();
-          setStats(data.stats);
-        } else {
-          console.error('Failed to fetch database stats:', response.status);
-          // Fallback to mock data if API fails
-          setStats(getMockDatabaseStats());
-        }
-      } catch (error) {
-        console.error('Error fetching database stats:', error);
-        // Fallback to mock data
-        setStats(getMockDatabaseStats());
-      } finally {
-        setLoading(false);
+  const fetchDatabaseStats = async () => {
+    try {
+      setLoading(true);
+      
+      // Real API call to get database stats
+      const response = await fetch('/api/admin/database/stats');
+      
+      if (response.ok) {
+        const data = await response.json();
+        setStats(data.stats);
+      } else {
+        console.error('Failed to fetch database stats:', response.status);
+        // Show error state instead of mock data
+        setStats(null);
       }
-    };
+    } catch (error) {
+      console.error('Error fetching database stats:', error);
+      // Show error state instead of mock data
+      setStats(null);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchDatabaseStats();
+    
+    // Set up auto-refresh every 30 seconds
+    const interval = setInterval(fetchDatabaseStats, 30000);
+    
+    return () => clearInterval(interval);
   }, []);
 
-  // Mock data fallback - replace with real API
-  const getMockDatabaseStats = (): DatabaseStats => {
-    return {
-      totalCollections: 8,
-      totalDocuments: 15420,
-      totalSize: '2.8 GB',
-      activeConnections: 12,
-      lastBackup: '2025-01-20T10:00:00Z',
-      backupStatus: 'success',
-      collections: [
-        {
-          name: 'users',
-          documentCount: 3420,
-          size: '156.7 MB',
-          indexes: 3,
-          lastModified: '2025-01-20T15:30:00Z',
-          status: 'healthy'
-        },
-        {
-          name: 'posts',
-          documentCount: 12000,
-          size: '2.1 GB',
-          indexes: 5,
-          lastModified: '2025-01-20T16:45:00Z',
-          status: 'healthy'
-        },
-        {
-          name: 'roles',
-          documentCount: 4,
-          size: '2.3 MB',
-          indexes: 2,
-          lastModified: '2025-01-20T14:20:00Z',
-          status: 'healthy'
-        },
-        {
-          name: 'deletedprofiles',
-          documentCount: 23,
-          size: '45.2 MB',
-          indexes: 1,
-          lastModified: '2025-01-20T12:15:00Z',
-          status: 'warning'
-        }
-      ]
-    };
-  };
+  
 
   const handleCreateBackup = async () => {
     try {
@@ -129,11 +102,7 @@ export default function DatabasePage() {
       
       if (response.ok) {
         // Refresh stats after backup
-        const updatedStats = await fetch('/api/admin/database/stats');
-        if (updatedStats.ok) {
-          const data = await updatedStats.json();
-          setStats(data.stats);
-        }
+        setTimeout(() => fetchDatabaseStats(), 1000);
       } else {
         console.error('Failed to create backup');
       }
@@ -154,11 +123,7 @@ export default function DatabasePage() {
       
       if (response.ok) {
         // Refresh stats after optimization
-        const updatedStats = await fetch('/api/admin/database/stats');
-        if (updatedStats.ok) {
-          const data = await updatedStats.json();
-          setStats(data.stats);
-        }
+        setTimeout(() => fetchDatabaseStats(), 1000);
       } else {
         console.error('Failed to optimize database');
       }
@@ -220,6 +185,17 @@ export default function DatabasePage() {
         </div>
         <div className="flex gap-2">
           <Button 
+            onClick={() => {
+              setLoading(true);
+              fetchDatabaseStats();
+            }}
+            variant="outline"
+            size="sm"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
+          <Button 
             onClick={handleCreateBackup} 
             disabled={backupInProgress}
             variant="outline"
@@ -246,7 +222,7 @@ export default function DatabasePage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center space-x-2">
@@ -278,6 +254,31 @@ export default function DatabasePage() {
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Active Connections</p>
                 <p className="text-2xl font-bold">{stats.activeConnections}</p>
+                <p className="text-xs text-muted-foreground">{stats.connectionUtilization}% of {stats.maxConnections}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-2">
+              <Zap className="h-4 w-4 text-muted-foreground" />
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Avg Response</p>
+                <p className="text-2xl font-bold">{stats.avgResponseTime}ms</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-2">
+              <CheckCircle className="h-4 w-4 text-muted-foreground" />
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Uptime</p>
+                <p className="text-2xl font-bold">{stats.uptime}%</p>
               </div>
             </div>
           </CardContent>
@@ -377,6 +378,7 @@ export default function DatabasePage() {
                   <th className="text-left py-3 px-4 font-medium">Collection</th>
                   <th className="text-left py-3 px-4 font-medium">Documents</th>
                   <th className="text-left py-3 px-4 font-medium">Size</th>
+                  <th className="text-left py-3 px-4 font-medium">Avg Doc Size</th>
                   <th className="text-left py-3 px-4 font-medium">Indexes</th>
                   <th className="text-left py-3 px-4 font-medium">Last Modified</th>
                   <th className="text-left py-3 px-4 font-medium">Status</th>
@@ -396,6 +398,7 @@ export default function DatabasePage() {
                       {collection.documentCount.toLocaleString()}
                     </td>
                     <td className="py-3 px-4 text-sm">{collection.size}</td>
+                    <td className="text-sm text-muted-foreground">{collection.avgDocumentSize}</td>
                     <td className="py-3 px-4 text-sm">{collection.indexes}</td>
                     <td className="py-3 px-4 text-sm text-muted-foreground">
                       {new Date(collection.lastModified).toLocaleDateString()}

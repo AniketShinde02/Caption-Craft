@@ -72,7 +72,32 @@ export default function CommunityPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background relative overflow-hidden">
+      {/* Coming Soon Overlay */}
+      <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white py-6 px-4">
+        <div className="container mx-auto text-center max-w-2xl">
+          <div className="flex items-center justify-center gap-3 mb-2">
+            <div className="w-3 h-3 bg-white rounded-full animate-pulse"></div>
+            <h2 className="text-xl font-bold">🌍 Coming Soon</h2>
+            <div className="w-3 h-3 bg-white rounded-full animate-pulse"></div>
+          </div>
+          <p className="text-purple-100 text-sm">
+            User community launching soon! Currently building our amazing platform as a solo developer!
+          </p>
+        </div>
+      </div>
+
+      {/* Diagonal Glassmorphism Under Development Watermark */}
+      <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 rotate-45 pointer-events-none z-10">
+        <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl px-8 py-4 shadow-2xl">
+          <div className="text-center">
+            <div className="text-2xl font-bold text-white/80 mb-1">🚧</div>
+            <div className="text-sm font-semibold text-white/90 uppercase tracking-wider">Under Development</div>
+            <div className="text-xs text-white/70 mt-1">Coming Soon</div>
+          </div>
+        </div>
+      </div>
+
       {/* Hero Section */}
       <section className="py-20 px-4">
         <div className="container mx-auto text-center max-w-3xl px-6">

@@ -3,7 +3,7 @@ import dbConnect from '@/lib/db';
 import Post from '@/models/Post';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
-import { deleteImageFromImageKitByUrl } from '@/lib/imagekit-utils';
+import { archiveCloudinaryImage, extractCloudinaryPublicId } from '@/lib/cloudinary';
 
 export async function DELETE(
   req: Request,
@@ -48,29 +48,40 @@ export async function DELETE(
       );
     }
 
-    // Delete associated image from ImageKit if it exists
-    let imageKitStatus = 'not_applicable';
+    // Archive associated image from Cloudinary if it exists
+    let archiveStatus = 'not_applicable';
     if (post.image) {
-      console.log(`🗑️ Deleting image from ImageKit: ${post.image}`);
+      console.log(`📁 Archiving image instead of deleting: ${post.image}`);
       try {
-        const imageKitDeleted = await deleteImageFromImageKitByUrl(post.image);
-        imageKitStatus = imageKitDeleted ? 'success' : 'failed';
-        if (!imageKitDeleted) {
-          console.warn(`⚠️ ImageKit deletion failed for: ${post.image}`);
+        // Extract public ID from Cloudinary URL
+        const publicId = extractCloudinaryPublicId(post.image);
+        if (publicId) {
+          const archiveResult = await archiveCloudinaryImage(publicId, session.user.id);
+          archiveStatus = archiveResult.success ? 'success' : 'failed';
+          if (archiveStatus === 'success') {
+            console.log(`✅ Image archived successfully: ${archiveResult.archivedId}`);
+          } else {
+            console.warn(`⚠️ Image archiving failed: ${archiveResult.error}`);
+          }
+        } else {
+          console.warn(`⚠️ Could not extract public ID from URL: ${post.image}`);
+          archiveStatus = 'failed';
         }
       } catch (error) {
-        console.error(`❌ ImageKit deletion error for: ${post.image}`, error);
-        imageKitStatus = 'error';
+        console.error(`❌ Image archiving error: ${post.image}`, error);
+        archiveStatus = 'error';
       }
     }
 
     // Delete the caption from database
     await Post.findByIdAndDelete(id);
 
-    // Return appropriate message based on ImageKit status
+    // Return appropriate message based on archive status
     let message = 'Caption deleted successfully';
-    if (imageKitStatus === 'failed' || imageKitStatus === 'error') {
+    if (archiveStatus === 'failed' || archiveStatus === 'error') {
       message = 'Caption deleted successfully. Note: Image may still exist in storage due to technical limitations.';
+    } else if (archiveStatus === 'success') {
+      message = 'Caption deleted successfully. Image has been safely archived.';
     }
 
     return NextResponse.json(
@@ -78,7 +89,8 @@ export async function DELETE(
         success: true, 
         message,
         deletedId: id,
-        imageKitStatus
+        archiveStatus,
+        note: 'Image is safely archived and can be restored if needed'
       }, 
       { status: 200 }
     );
@@ -94,10 +106,10 @@ export async function DELETE(
       );
     }
 
-    // Handle ImageKit-specific errors
-    if (error.message?.includes('ImageKit') || error.message?.includes('image')) {
-      console.warn('ImageKit deletion failed, but continuing with database cleanup');
-      // Try to delete from database even if ImageKit fails
+    // Handle Cloudinary-specific errors
+    if (error.message?.includes('Cloudinary') || error.message?.includes('image')) {
+      console.warn('Image archiving failed, but continuing with database cleanup');
+      // Try to delete from database even if Cloudinary fails
       try {
         await Post.findByIdAndDelete(id);
         return NextResponse.json(
@@ -105,7 +117,7 @@ export async function DELETE(
             success: true, 
             message: 'Caption deleted successfully. Note: Image may still exist in storage due to technical limitations.',
             deletedId: id,
-            imageKitStatus: 'failed'
+            archiveStatus: 'failed'
           }, 
           { status: 200 }
         );

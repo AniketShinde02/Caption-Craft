@@ -24,7 +24,7 @@ export class BrevoEmailService implements EmailService {
       }
 
       const info = await transporter.sendMail({
-        from: `CaptionCraft Admin <${process.env.SMTP_FROM || process.env.EMAIL_FROM || process.env.SMTP_USER}>`,
+        from: `Capsera Admin <${process.env.SMTP_FROM || process.env.EMAIL_FROM || process.env.SMTP_USER}>`,
         to: emailData.to,
         subject: emailData.subject,
         text: emailData.body,
@@ -79,25 +79,45 @@ export async function sendAdminSetupToken(email: string, token: string): Promise
   
   const emailData: EmailData = {
     to: email,
-    subject: 'CaptionCraft Admin Setup Token',
+    subject: 'Capsera Admin Setup Token',
     body: `Your admin setup token is: ${token}\n\nThis token expires in 24 hours.\n\nPlease use this token to complete the admin setup process.\n\nIf you did not request this token, please contact system administrators immediately.`,
     html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #2563eb;">🔐 CaptionCraft Admin Setup Token</h2>
-        <p>Your admin setup token has been generated successfully.</p>
-        <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
-          <p style="margin: 0; font-family: monospace; font-size: 14px; word-break: break-all;">${token}</p>
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <!-- Header with Logo -->
+          <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 32px; text-align: center; border-radius: 8px 8px 0 0;">
+            <div style="display: inline-flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+                              <div style="background: rgba(255, 255, 255, 0.2); padding: 8px; border-radius: 8px;">
+                  <img 
+                    src="https://ai-caption-generator-pied.vercel.app/favicon.svg" 
+                    alt="Capsera Logo" 
+                    width="24" 
+                    height="24" 
+                    style="filter: brightness(0) invert(1);"
+                  />
+                </div>
+              <h1 style="margin: 0; color: white; font-size: 24px; font-weight: 700;">Capsera</h1>
+            </div>
+            <p style="margin: 0; color: rgba(255, 255, 255, 0.9); font-size: 16px;">AI-Powered Caption Generation</p>
+          </div>
+          
+          <!-- Content -->
+          <div style="background: white; padding: 32px; border-radius: 0 0 8px 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);">
+            <h2 style="color: #2563eb; margin: 0 0 24px 0;">🔐 Admin Setup Token</h2>
+            <p>Your admin setup token has been generated successfully.</p>
+            <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <p style="margin: 0; font-family: monospace; font-size: 14px; word-break: break-all;">${token}</p>
+            </div>
+            <p><strong>⚠️ Important:</strong></p>
+            <ul>
+              <li>This token expires in 24 hours</li>
+              <li>Keep this token secure and confidential</li>
+              <li>Use this token to complete the admin setup process</li>
+            </ul>
+            <p>If you did not request this token, please contact system administrators immediately.</p>
+            <hr style="margin: 20px 0; border: none; border-top: 1px solid #e5e7eb;">
+            <p style="color: #6b7280; font-size: 12px;">This is an automated message from Capsera Admin System.</p>
+          </div>
         </div>
-        <p><strong>⚠️ Important:</strong></p>
-        <ul>
-          <li>This token expires in 24 hours</li>
-          <li>Keep this token secure and confidential</li>
-          <li>Use this token to complete the admin setup process</li>
-        </ul>
-        <p>If you did not request this token, please contact system administrators immediately.</p>
-        <hr style="margin: 20px 0; border: none; border-top: 1px solid #e5e7eb;">
-        <p style="color: #6b7280; font-size: 12px;">This is an automated message from CaptionCraft Admin System.</p>
-      </div>
     `
   };
   

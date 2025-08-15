@@ -1,8 +1,10 @@
 import { getServerSession } from 'next-auth';
 import { redirect } from 'next/navigation';
 import { authOptions } from '@/lib/auth';
+import { canManageAdmins } from '@/lib/init-admin';
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import AdminThemeProvider from '@/components/admin/AdminThemeProvider';
+import { Toaster } from '@/components/ui/toaster';
 import AdminHeader from '@/components/admin/AdminHeader';
 
 export default async function AdminLayout({
@@ -25,14 +27,19 @@ export default async function AdminLayout({
     redirect('/setup');
   }
   
-  // Check if user has admin role
-  if (session.user?.role?.name !== 'admin') {
-    console.log('❌ Admin layout - User is not admin, redirecting to unauthorized page. Role:', session.user?.role);
-    // Redirect non-admin users to unauthorized page for security logging
+  // Check if user has admin access using the permission system
+  try {
+    const hasAdminAccess = await canManageAdmins(session.user.id);
+    if (!hasAdminAccess) {
+      console.log('❌ Admin layout - User does not have admin access, redirecting to unauthorized page');
+      redirect('/unauthorized');
+    }
+  } catch (error) {
+    console.error('❌ Admin layout - Error checking admin access:', error);
     redirect('/unauthorized');
   }
 
-  console.log('✅ Admin layout - User is admin, rendering admin interface');
+  console.log('✅ Admin layout - User has admin access, rendering admin interface');
 
   return (
     <AdminThemeProvider>
@@ -52,6 +59,7 @@ export default async function AdminLayout({
           </main>
         </div>
       </div>
+      <Toaster />
     </AdminThemeProvider>
   );
 }

@@ -145,194 +145,97 @@ export default function ContactPage() {
         - `flex items-center`: This centers the content grid vertically within the main area.
         - `py-16`: Increased vertical padding for better spacing above and below the content.
       */}
-      <main className="container mx-auto flex flex-grow items-center px-4 py-16">
-        <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-16 md:grid-cols-2">
+      <main className="container mx-auto flex flex-grow items-center px-4 py-8 sm:py-12 md:py-16">
+        <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-8 sm:gap-12 md:gap-16 md:grid-cols-2">
           
           {/* Left Column: Information */}
-          <div className="space-y-6 text-center md:text-left">
-            <h2 className="bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-5xl font-bold text-transparent md:text-6xl">
+          <div className="space-y-4 sm:space-y-6 text-center md:text-left">
+            <h2 className="bg-gradient-to-r from-purple-400 to-pink-500 bg-clip-text text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-transparent">
               Let's Connect
             </h2>
-            <p className="text-xl leading-relaxed text-muted-foreground">
+            <p className="text-base sm:text-lg md:text-xl leading-relaxed text-muted-foreground px-2">
               Have a question, feedback, or a partnership idea? We're all ears. Reach out and our team will get back to you as soon as possible.
             </p>
-            <div className="space-y-6 pt-6">
-              <div className="flex items-center justify-center gap-4 md:justify-start">
-                <Mail className="h-6 w-6 text-primary" />
-                <span className="text-lg">AiCaptionCraft@outlook.com</span>
+            <div className="space-y-4 sm:space-y-6 pt-4 sm:pt-6">
+              <div className="flex items-center justify-center gap-3 sm:gap-4 md:justify-start">
+                <Mail className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                <span className="text-base sm:text-lg">AiCaptionCraft@outlook.com</span>
               </div>
-              <div className="flex items-center justify-center gap-4 md:justify-start">
-                <MapPin className="h-6 w-6 text-primary" />
-                <span className="text-lg">Nashik, Maharashtra, India</span>
+              <div className="flex items-center justify-center gap-3 sm:gap-4 md:justify-start">
+                <MapPin className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                <span className="text-base sm:text-lg">Nashik, Maharashtra, India</span>
               </div>
             </div>
-            <div className="flex items-center justify-center gap-6 pt-8 md:justify-start">
+            <div className="flex items-center justify-center gap-4 sm:gap-6 pt-6 sm:pt-8 md:justify-start">
               <Link href="/twitter" className="text-muted-foreground transition-transform duration-300 hover:scale-110 hover:text-primary">
-                <Twitter className="h-7 w-7" />
+                <Twitter className="h-6 w-6 sm:h-7 sm:w-7" />
               </Link>
               <Link href="/instagram" className="text-muted-foreground transition-transform duration-300 hover:scale-110 hover:text-primary">
-                <Instagram className="h-7 w-7" />
+                <Instagram className="h-6 w-6 sm:h-7 sm:w-7" />
               </Link>
               <Link href="/facebook" className="text-muted-foreground transition-transform duration-300 hover:scale-110 hover:text-primary">
-                <Facebook className="h-7 w-7" />
+                <Facebook className="h-6 w-6 sm:h-7 sm:w-7" />
               </Link>
             </div>
           </div>
 
           {/* Right Column: Contact Form */}
-          <div className="rounded-xl bg-card p-8 shadow-lg">
-            {isSubmitted ? (
-              <Card className="border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950">
-                <CardContent className="flex flex-col items-center p-8 text-center">
-                  <div className="mb-4 p-4 rounded-full bg-green-100 dark:bg-green-900">
-                    <CheckCircle className="h-12 w-12 text-green-600 dark:text-green-400" />
-                  </div>
-                  <h3 className="text-xl font-semibold mb-2 text-green-800 dark:text-green-200">
-                    Message Sent Successfully!
-                  </h3>
-                  <p className="text-green-700 dark:text-green-300 mb-6">
-                    Thank you for reaching out! We've received your message and will get back to you within 24 hours.
-                  </p>
-                  <p className="text-sm text-green-600 dark:text-green-400 mb-4">
-                    A confirmation email has been sent to your inbox.
-                  </p>
-                  <Button 
-                    variant="outline" 
-                    onClick={() => setIsSubmitted(false)}
-                    className="border-green-300 text-green-700 hover:bg-green-100 dark:border-green-700 dark:text-green-300 dark:hover:bg-green-900"
-                  >
-                    Send Another Message
-                  </Button>
-                </CardContent>
-              </Card>
-            ) : (
-              <form onSubmit={handleSubmit}>
-                <div className="mb-6 grid grid-cols-1 gap-6 sm:grid-cols-2">
-                  <div>
-                    <label className="mb-2 block text-sm font-medium text-muted-foreground" htmlFor="name">
-                      Name <span className="text-red-500">*</span>
-                    </label>
-                    <Input 
-                      id="name" 
-                      name="name" 
-                      placeholder="Your full name" 
-                      type="text"
-                      value={formData.name}
-                      onChange={handleInputChange('name')}
-                      className={errors.name ? 'border-red-500 focus:border-red-500 dark:border-red-400 dark:focus:border-red-400' : ''}
-                      disabled={isSubmitting}
-                    />
-                    {errors.name && (
-                      <div className="flex items-center mt-1 text-sm text-red-500">
-                        <AlertCircle className="h-4 w-4 mr-1" />
-                        {errors.name}
-                      </div>
-                    )}
-                  </div>
-                  <div>
-                    <label className="mb-2 block text-sm font-medium text-muted-foreground" htmlFor="email">
-                      Email <span className="text-red-500">*</span>
-                    </label>
-                    <Input 
-                      id="email" 
-                      name="email" 
-                      placeholder="your.email@example.com" 
-                      type="email"
-                      value={formData.email}
-                      onChange={handleInputChange('email')}
-                      className={errors.email ? 'border-red-500 focus:border-red-500 dark:border-red-400 dark:focus:border-red-400' : ''}
-                      disabled={isSubmitting}
-                    />
-                    {errors.email && (
-                      <div className="flex items-center mt-1 text-sm text-red-500">
-                        <AlertCircle className="h-4 w-4 mr-1" />
-                        {errors.email}
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <div className="mb-6">
-                  <label className="mb-2 block text-sm font-medium text-muted-foreground" htmlFor="subject">
-                    Subject <span className="text-red-500">*</span>
+          <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg p-6 sm:p-8">
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+                <div className="space-y-2">
+                  <label htmlFor="name" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Name *
                   </label>
-                  <Input 
-                    id="subject" 
-                    name="subject" 
-                    placeholder="What's this about?" 
+                  <Input
+                    id="name"
                     type="text"
-                    value={formData.subject}
-                    onChange={handleInputChange('subject')}
-                    className={errors.subject ? 'border-red-500 focus:border-red-500 dark:border-red-400 dark:focus:border-red-400' : ''}
-                    disabled={isSubmitting}
+                    placeholder="Your full name"
+                    className="h-11"
+                    required
                   />
-                  {errors.subject && (
-                    <div className="flex items-center mt-1 text-sm text-red-500">
-                      <AlertCircle className="h-4 w-4 mr-1" />
-                      {errors.subject}
-                    </div>
-                  )}
                 </div>
-                <div className="mb-6">
-                  <label className="mb-2 block text-sm font-medium text-muted-foreground" htmlFor="message">
-                    Message <span className="text-red-500">*</span>
+                <div className="space-y-2">
+                  <label htmlFor="email" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                    Email *
                   </label>
-                  <Textarea 
-                    id="message" 
-                    name="message" 
-                    placeholder="Tell us more about your inquiry..." 
-                    rows={5}
-                    value={formData.message}
-                    onChange={handleInputChange('message')}
-                    className={errors.message ? 'border-red-500 focus:border-red-500 dark:border-red-400 dark:focus:border-red-400' : ''}
-                    disabled={isSubmitting}
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="your.email@example.com"
+                    className="h-11"
+                    required
                   />
-                  {errors.message && (
-                    <div className="flex items-center mt-1 text-sm text-red-500">
-                      <AlertCircle className="h-4 w-4 mr-1" />
-                      {errors.message}
-                    </div>
-                  )}
-                  <div className="mt-1 text-xs text-muted-foreground">
-                    {formData.message.length}/500 characters
-                  </div>
                 </div>
-                
-                {/* Submit Error Message */}
-                {submitError && (
-                  <div className="flex items-center p-3 rounded-lg bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300">
-                    <AlertCircle className="h-4 w-4 mr-2 flex-shrink-0" />
-                    <p className="text-sm">{submitError}</p>
-                  </div>
-                )}
-                
-                {/* Submit Success Message */}
-                {submitSuccess && (
-                  <div className="flex items-center p-3 rounded-lg bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300">
-                    <CheckCircle className="h-4 w-4 mr-2 flex-shrink-0" />
-                    <p className="text-sm">{submitSuccess}</p>
-                  </div>
-                )}
-                
-                <Button 
-                  className="w-full" 
-                  type="submit" 
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Sending Message...
-                    </>
-                  ) : (
-                    <>
-                      <Send className="h-4 w-4 mr-2" />
-                      Send Message
-                    </>
-                  )}
-                </Button>
-                 
-              </form>
-            )}
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="subject" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Subject *
+                </label>
+                <Input
+                  id="subject"
+                  type="text"
+                  placeholder="What's this about?"
+                  className="h-11"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="message" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Message *
+                </label>
+                <Textarea
+                  id="message"
+                  placeholder="Tell us more about your inquiry..."
+                  rows={5}
+                  className="resize-none"
+                  required
+                />
+              </div>
+              <Button type="submit" className="w-full h-11 text-base font-medium">
+                Send Message
+              </Button>
+            </div>
           </div>
 
         </div>

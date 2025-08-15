@@ -5,67 +5,66 @@ export async function initializeDefaultRoles() {
   try {
     await dbConnect();
 
-    // Define default system roles
+    // Define default system roles with correct permission format
     const defaultRoles = [
       {
         name: 'admin',
+        displayName: 'Administrator',
         description: 'Full system administrator with all permissions',
         permissions: [
-          'user_management',
-          'role_management',
-          'content_moderation',
-          'system_settings',
-          'data_recovery',
-          'database_management',
-          'image_management',
-          'system_alerts',
-          'analytics',
-          'backup_restore',
-          'rate_limit_management',
-          'blocked_credentials_management'
+          { resource: 'users', actions: ['create', 'read', 'update', 'delete', 'manage'] },
+          { resource: 'roles', actions: ['create', 'read', 'update', 'delete', 'manage'] },
+          { resource: 'posts', actions: ['create', 'read', 'update', 'delete', 'manage'] },
+          { resource: 'captions', actions: ['create', 'read', 'update', 'delete', 'manage'] },
+          { resource: 'data-recovery', actions: ['create', 'read', 'update', 'delete', 'manage'] },
+          { resource: 'archived-profiles', actions: ['create', 'read', 'update', 'delete', 'manage'] },
+          { resource: 'dashboard', actions: ['create', 'read', 'update', 'delete', 'manage'] },
+          { resource: 'system', actions: ['create', 'read', 'update', 'delete', 'manage'] },
+          { resource: 'analytics', actions: ['create', 'read', 'update', 'delete', 'manage'] }
         ],
         isSystem: true,
-        userCount: 0,
+        isActive: true,
+        createdAt: new Date()
       },
       {
         name: 'moderator',
+        displayName: 'Moderator',
         description: 'Content moderator with limited administrative permissions',
         permissions: [
-          'content_moderation',
-          'user_management',
-          'data_recovery',
-          'system_alerts',
-          'analytics'
+          { resource: 'posts', actions: ['read', 'update', 'delete'] },
+          { resource: 'users', actions: ['read', 'update'] },
+          { resource: 'data-recovery', actions: ['read'] },
+          { resource: 'dashboard', actions: ['read'] },
+          { resource: 'analytics', actions: ['read'] }
         ],
         isSystem: true,
-        userCount: 0,
+        isActive: true,
+        createdAt: new Date()
       },
       {
         name: 'user',
+        displayName: 'Standard User',
         description: 'Standard user with basic permissions',
         permissions: [
-          'generate_captions',
-          'view_own_posts',
-          'edit_own_profile',
-          'delete_own_account'
+          { resource: 'captions', actions: ['create', 'read'] },
+          { resource: 'posts', actions: ['create', 'read', 'update', 'delete'] }
         ],
         isSystem: true,
-        userCount: 0,
+        isActive: true,
+        createdAt: new Date()
       },
       {
         name: 'premium',
+        displayName: 'Premium User',
         description: 'Premium user with enhanced features',
         permissions: [
-          'generate_captions',
-          'view_own_posts',
-          'edit_own_profile',
-          'delete_own_account',
-          'priority_support',
-          'advanced_features',
-          'bulk_operations'
+          { resource: 'captions', actions: ['create', 'read'] },
+          { resource: 'posts', actions: ['create', 'read', 'update', 'delete'] },
+          { resource: 'analytics', actions: ['read'] }
         ],
         isSystem: true,
-        userCount: 0,
+        isActive: true,
+        createdAt: new Date()
       }
     ];
 
@@ -86,7 +85,8 @@ export async function initializeDefaultRoles() {
             console.log(`Updating permissions for system role: ${roleData.name}`);
             await Role.findByIdAndUpdate(existingRole._id, {
               permissions: roleData.permissions,
-              description: roleData.description
+              description: roleData.description,
+              displayName: roleData.displayName
             });
           }
         }

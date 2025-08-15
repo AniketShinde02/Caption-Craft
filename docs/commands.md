@@ -47,6 +47,32 @@ npm run genkit:watch
 ```
 Starts Genkit in watch mode for development
 
+## 📊 Performance & Load Testing Commands
+
+### Load Testing
+```bash
+npm run load-test
+```
+Runs comprehensive load testing with 100+ concurrent users
+
+### Custom Load Testing
+```bash
+npm run load-test -- --users 200 --requests 10 --url https://yourdomain.com
+```
+Customize load test parameters for specific scenarios
+
+### Performance Monitoring
+```bash
+npm run performance:monitor
+```
+Access performance monitoring dashboard and metrics
+
+### Database Optimization
+```bash
+npm run db:optimize
+```
+Run database optimization and performance checks
+
 ## 🏗️ Build & Production Commands
 
 ### Build for Production
@@ -130,6 +156,35 @@ Tests MongoDB connection
 node -e "require('./src/lib/db').connectToDatabase().then(async ({db}) => { const cols = await db.listCollections().toArray(); console.log('Collections:', cols.map(c => c.name)); process.exit(0); }).catch(console.error)"
 ```
 Lists all database collections
+
+## 🏥 System Health & Monitoring Commands
+
+### Health Check API
+```bash
+# Basic health check
+curl https://yourdomain.com/api/health-check
+
+# Performance metrics only
+curl https://yourdomain.com/api/health-check | jq '.performance'
+
+# Queue status
+curl https://yourdomain.com/api/health-check | jq '.queue'
+
+# Database health
+curl https://yourdomain.com/api/health-check | jq '.database'
+```
+
+### Performance Monitoring
+```bash
+# Real-time API performance
+curl https://yourdomain.com/api/health-check | jq '.performance.apiResponseTime'
+
+# System resources
+curl https://yourdomain.com/api/health-check | jq '.system.cpu, .system.memory'
+
+# Queue metrics
+curl https://yourdomain.com/api/health-check | jq '.queue.length, .queue.averageWaitTime'
+```
 
 ## 🔧 Utility Commands
 
@@ -288,6 +343,9 @@ npm run clear-admin            # Clear admin data
 npm run force-clear-sessions   # Clear all sessions
 npm run build                  # Build for production
 npm run start                  # Start production server
+npm run load-test              # Load testing
+npm run performance:monitor    # Performance monitoring
+npm run db:optimize            # Database optimization
 ```
 
 ### Development Workflow:

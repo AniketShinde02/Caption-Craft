@@ -7,7 +7,7 @@ import DeletedProfile from '@/models/DeletedProfile';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { blockCredentials, getClientIP } from '@/lib/rate-limit';
-import { batchMoveImagesToArchive } from '@/lib/imagekit-utils';
+import { batchArchiveImagesToCloudinary } from '@/lib/cloudinary-archive';
 import { sendRequestConfirmationEmail } from '@/lib/mail';
 
 export async function DELETE(req: NextRequest) {
@@ -45,7 +45,7 @@ export async function DELETE(req: NextRequest) {
     // Fetch all user's posts/captions
     const userPosts = await Post.find({ user: userId });
 
-    // 📁 Archive images to ImageKit before deleting posts
+    // 📁 Archive images to Cloudinary before deleting posts
     const imageUrls = userPosts
       .map(post => post.image)
       .filter(Boolean) as string[]; // Filter out undefined/null values
@@ -59,7 +59,7 @@ export async function DELETE(req: NextRequest) {
     
     if (imageUrls.length > 0) {
       console.log(`📁 Starting image archiving for user ${userId}: ${imageUrls.length} images`);
-      archiveResult = await batchMoveImagesToArchive(imageUrls, userId);
+      archiveResult = await batchArchiveImagesToCloudinary(imageUrls, userId);
       console.log(`📊 Image archiving complete: ${archiveResult.success} success, ${archiveResult.failed} failed`);
     }
 
@@ -105,6 +105,7 @@ export async function DELETE(req: NextRequest) {
         failedArchives: archiveResult.failed,
         archiveErrors: archiveResult.errors,
         archivedAt: new Date(),
+        archiveProvider: 'Cloudinary',
       },
     });
 
@@ -121,8 +122,8 @@ export async function DELETE(req: NextRequest) {
           estimatedTime: 'Immediate',
           nextSteps: [
             'Your account has been successfully deleted',
-            'All your data has been archived securely',
-            'Your images have been moved to our archive system',
+            'All your data has been archived securely to Cloudinary',
+            'Your images have been moved to our secure archive system',
             'You can request data recovery within 30 days if needed',
             'Your email has been blocked from re-registration for security'
           ]
@@ -150,11 +151,11 @@ export async function DELETE(req: NextRequest) {
 
     // Log the deletion for administrative purposes
     console.log(`User account deleted: ${user.email} (ID: ${userId}) at ${new Date().toISOString()}`);
-    console.log(`📁 Images archived: ${archiveResult.success}/${imageUrls.length} to ImageKit archive folder`);
+    console.log(`📁 Images archived: ${archiveResult.success}/${imageUrls.length} to Cloudinary archive folder`);
 
     return NextResponse.json({
       success: true,
-      message: 'Account deleted successfully. Your data and images have been archived according to our data retention policy.',
+      message: 'Account deleted successfully. Your data and images have been archived to Cloudinary according to our data retention policy.',
       archiveId: archivedProfile._id,
       imagesArchived: {
         total: imageUrls.length,

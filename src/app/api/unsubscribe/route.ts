@@ -34,7 +34,15 @@ export async function GET(req: NextRequest) {
     await user.save();
 
     // Redirect to a confirmation page
-    const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://captioncraft.vercel.app';
+    const baseUrl = process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL;
+    if (!baseUrl) {
+      console.error('❌ Missing NEXTAUTH_URL or NEXT_PUBLIC_APP_URL environment variable');
+      return NextResponse.json(
+        { success: false, message: 'Server configuration error' },
+        { status: 500 }
+      );
+    }
+    
     const redirectUrl = `${baseUrl}/unsubscribe-confirmation?email=${encodeURIComponent(user.email)}`;
 
     return NextResponse.redirect(redirectUrl);

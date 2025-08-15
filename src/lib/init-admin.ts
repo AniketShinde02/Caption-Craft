@@ -1,6 +1,7 @@
 import dbConnect from './db';
 import Role from '@/models/Role';
 import User from '@/models/User';
+import AdminUser from '@/models/AdminUser';
 import bcrypt from 'bcryptjs';
 
 // Default roles configuration
@@ -150,7 +151,14 @@ export async function createAdminUser(email: string, password: string, username?
 // Function to check if user has permission
 export async function checkUserPermission(userId: string, resource: string, action: string): Promise<boolean> {
   try {
-    const user = await User.findById(userId).populate('role');
+    // First check AdminUser collection
+    let user = await AdminUser.findById(userId).populate('role');
+    
+    // If not found in AdminUser, check User collection
+    if (!user) {
+      user = await User.findById(userId).populate('role');
+    }
+    
     if (!user) return false;
 
     // Super admin has all permissions
@@ -173,7 +181,14 @@ export async function checkUserPermission(userId: string, resource: string, acti
 // Function to get user permissions
 export async function getUserPermissions(userId: string): Promise<string[]> {
   try {
-    const user = await User.findById(userId).populate('role');
+    // First check AdminUser collection
+    let user = await AdminUser.findById(userId).populate('role');
+    
+    // If not found in AdminUser, check User collection
+    if (!user) {
+      user = await User.findById(userId).populate('role');
+    }
+    
     if (!user) return [];
 
     // Super admin has all permissions
@@ -200,7 +215,14 @@ export async function getUserPermissions(userId: string): Promise<string[]> {
 // Function to check if user is super admin
 export async function isSuperAdmin(userId: string): Promise<boolean> {
   try {
-    const user = await User.findById(userId);
+    // First check AdminUser collection
+    let user = await AdminUser.findById(userId);
+    
+    // If not found in AdminUser, check User collection
+    if (!user) {
+      user = await User.findById(userId);
+    }
+    
     return user?.isSuperAdmin || false;
   } catch (error) {
     console.error('Error checking super admin status:', error);
@@ -211,11 +233,21 @@ export async function isSuperAdmin(userId: string): Promise<boolean> {
 // Function to check if user can manage admins
 export async function canManageAdmins(userId: string): Promise<boolean> {
   try {
-    const user = await User.findById(userId);
+    // First check AdminUser collection
+    let user = await AdminUser.findById(userId);
+    
+    // If not found in AdminUser, check User collection
+    if (!user) {
+      user = await User.findById(userId);
+    }
+    
     if (!user) return false;
 
     // Super admin can always manage admins
     if (user.isSuperAdmin) return true;
+
+    // Admin users can manage admins
+    if (user.isAdmin) return true;
 
     // Check if user has admin-management permission
     return await checkUserPermission(userId, 'admin-management', 'manage');

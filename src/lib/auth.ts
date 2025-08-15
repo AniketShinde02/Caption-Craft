@@ -180,30 +180,29 @@ export const authOptions: NextAuthOptions = {
         token.role = (user as any).role;
         token.username = (user as any).username;
         token.isVerified = (user as any).isVerified;
+        token.isAdmin = (user as any).isAdmin;
         // Add timestamp to track when token was created
         token.iat = Math.floor(Date.now() / 1000);
         token.lastValidated = Math.floor(Date.now() / 1000);
       }
       
       // Handle admin users differently
-      if (token.role?.name === 'admin') {
-        // For admin users, validate against users collection
+      if (token.isAdmin || token.role?.name === 'admin' || token.role?.name === 'super-admin') {
+        // For admin users, validate against adminusers collection
         const now = Math.floor(Date.now() / 1000);
         const timeSinceLastValidation = now - (Number(token.lastValidated) || 0);
         
         if (timeSinceLastValidation > 24 * 60 * 60) { // 24 hours for admin
           try {
-            const { db } = await connectToDatabase();
-            const adminUser = await db.collection('users').findOne({
-              _id: new ObjectId(token.id),
-              'role.name': 'admin'
-            });
+            const adminUser = await AdminUser.findById(token.id);
             
-            if (!adminUser) {
-              // Admin user no longer exists or role changed
-              return { ...token, id: '', email: '', role: undefined };
+            if (!adminUser || !adminUser.isAdmin) {
+              // Admin user no longer exists or is no longer admin
+              return { ...token, id: '', email: '', role: undefined, isAdmin: false };
             }
             token.lastValidated = now;
+            token.role = adminUser.role;
+            token.isAdmin = adminUser.isAdmin;
           } catch (error) {
             console.error('Error validating admin user in JWT callback:', error);
           }
@@ -238,7 +237,7 @@ export const authOptions: NextAuthOptions = {
       return token;
     },
     async session({ session, token }) {
-      console.log('🔐 Session callback - Token:', { id: token.id, role: token.role, email: token.email });
+      console.log('🔐 Session callback - Token:', { id: token.id, role: token.role, email: token.email, isAdmin: token.isAdmin });
       
       if (token && session.user) {
         // Ensure the session user object has the id and admin properties
@@ -246,44 +245,42 @@ export const authOptions: NextAuthOptions = {
         session.user.role = token.role as any; // Pass the entire role object
         session.user.username = token.username as string;
         session.user.isVerified = token.isVerified as boolean;
+        session.user.isAdmin = token.isAdmin as boolean;
         
         console.log('🔐 Session callback - Updated session user:', { 
           id: session.user.id, 
           role: session.user.role, 
-          email: session.user.email 
+          email: session.user.email,
+          isAdmin: session.user.isAdmin
         });
         
         // Handle admin users differently
-        if (token.role?.name === 'admin') {
+        if (token.isAdmin || token.role?.name === 'admin' || token.role?.name === 'super-admin') {
           console.log('🔐 Session callback - Processing admin user');
           const timeSinceLastValidation = Math.floor(Date.now() / 1000) - (Number(token.lastValidated) || 0);
           
           if (timeSinceLastValidation > 24 * 60 * 60) { // 24 hours for admin
             try {
-              const { db } = await connectToDatabase();
-              const adminUser = await db.collection('users').findOne({
-                _id: new ObjectId(token.id),
-                'role.name': 'admin'
-              });
+              const adminUser = await AdminUser.findById(token.id);
               
-              if (adminUser) {
+              if (adminUser && adminUser.isAdmin) {
                 console.log('✅ Session callback - Admin user validated:', adminUser.email);
                 session.user.email = adminUser.email;
                 session.user.role = adminUser.role; // Pass the entire role object
                 session.user.username = adminUser.username || adminUser.name;
                 session.user.isVerified = adminUser.isVerified || false;
+                session.user.isAdmin = adminUser.isAdmin;
               } else {
-                console.log('❌ Session callback - Admin user no longer exists or role changed');
-                // Admin user no longer exists or role changed
-                return { ...session, user: { id: '', email: '', name: '' } };
+                console.log('❌ Session callback - Admin user no longer valid');
+                session.user.id = '';
+                session.user.email = '';
+                session.user.role = undefined;
+                session.user.isAdmin = false;
               }
             } catch (error) {
-              console.error('❌ Session callback - Error fetching admin user:', error);
+              console.error('Error validating admin user in session callback:', error);
             }
-          } else {
-            console.log('✅ Session callback - Admin user recently validated, skipping DB check');
           }
-          return session;
         }
         
         // Regular user validation (existing logic)

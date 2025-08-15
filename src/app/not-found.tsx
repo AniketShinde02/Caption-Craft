@@ -95,7 +95,7 @@ export default function NotFound() {
                 Need assistance? We're here to help
               </p>
               <Button variant="ghost" size="sm" asChild>
-                <Link href="/contact">Contact Us</Link>
+                <a href="mailto:ai.captioncraft@outlook.com">Contact Us</a>
               </Button>
             </CardContent>
           </Card>

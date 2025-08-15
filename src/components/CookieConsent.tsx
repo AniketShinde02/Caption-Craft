@@ -13,7 +13,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Cookie, Settings, X, Shield, Info } from 'lucide-react';
+import { Cookie, Settings, X, Shield, Info, Palette } from 'lucide-react';
 import Link from 'next/link';
 import { 
   CookiePreferences, 
@@ -150,209 +150,177 @@ export default function CookieConsent() {
     }));
   };
 
-  if (!showBanner) return null;
+  const openSettings = () => {
+    setShowSettings(true);
+  };
+
+  const closeBanner = () => {
+    setShowBanner(false);
+  };
+
+  const updatePreference = (key: keyof CookiePreferences, value: boolean) => {
+    setPreferences(prev => ({
+      ...prev,
+      [key]: value,
+    }));
+  };
 
   return (
     <>
-      {/* Cookie Banner */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-background/95 backdrop-blur-sm border-t border-border shadow-lg">
-        <Card className="max-w-6xl mx-auto">
-          <CardContent className="p-6">
-            <div className="flex flex-col lg:flex-row lg:items-center gap-4">
-              <div className="flex items-start gap-3 flex-1">
-                <div className="p-2 rounded-full bg-primary/10 text-primary flex-shrink-0">
-                  <Cookie className="w-5 h-5" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold mb-2">Cookie Preferences</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    We use cookies to enhance your experience, analyze site traffic, and personalize content. 
-                    You can choose which cookies to accept below or click "Accept All" to consent to all cookies.
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    By continuing to use our site, you agree to our{' '}
-                    <Link href="/privacy" className="text-primary hover:underline">
-                      Privacy Policy
-                    </Link>{' '}
-                    and{' '}
-                    <Link href="/terms" className="text-primary hover:underline">
-                      Terms of Service
-                    </Link>.
-                  </p>
-                </div>
-              </div>
-              
-              <div className="flex flex-col sm:flex-row gap-3 lg:flex-shrink-0">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => setShowSettings(true)}
-                  className="text-xs"
-                >
-                  <Settings className="w-4 h-4 mr-2" />
-                  Customize
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={acceptNecessary}
-                  className="text-xs"
-                >
-                  Accept Necessary Only
-                </Button>
-                <Button 
-                  size="sm" 
-                  onClick={acceptAll}
-                  className="bg-primary hover:bg-primary/90 text-xs"
-                >
-                  Accept All
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Cookie Settings Dialog */}
-      <Dialog open={showSettings} onOpenChange={setShowSettings}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Shield className="w-5 h-5 text-primary" />
-              Cookie Preferences
-            </DialogTitle>
-            <DialogDescription>
-              Manage your cookie preferences. You can enable or disable different types of cookies below.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-6">
-            {/* Necessary Cookies */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Checkbox 
-                    checked={preferences.necessary}
-                    disabled={true}
-                    className="opacity-50"
-                  />
-                  <div>
-                    <h4 className="font-medium">Necessary Cookies</h4>
-                    <Badge variant="secondary" className="text-xs mt-1">Required</Badge>
+      {/* Cookie Banner - Mobile First Responsive */}
+      {showBanner && (
+        <div className="fixed bottom-4 left-4 right-4 sm:bottom-6 sm:left-6 sm:right-auto z-50 animate-in slide-in-from-bottom-4 sm:slide-in-from-left-4 duration-700 ease-out">
+          <Card className="w-full sm:w-auto sm:max-w-md border-border shadow-2xl bg-background/95 backdrop-blur-sm">
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex items-start gap-3 sm:gap-4">
+                <div className="flex-shrink-0">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                    <Cookie className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
                   </div>
                 </div>
+                
+                <div className="flex-1 min-w-0 space-y-3 sm:space-y-4">
+                  <div>
+                    <h3 className="text-sm sm:text-base font-semibold text-foreground mb-1 sm:mb-2">
+                      We use cookies to enhance your experience
+                    </h3>
+                    <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+                      By continuing to use this site, you agree to our use of cookies for analytics and personalized content.
+                    </p>
+                  </div>
+                  
+                  <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                    <Button 
+                      onClick={acceptAll} 
+                      size="sm"
+                      className="w-full sm:w-auto h-9 sm:h-10 text-xs sm:text-sm font-medium rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground"
+                    >
+                      Accept All
+                    </Button>
+                    <Button 
+                      onClick={openSettings} 
+                      variant="outline" 
+                      size="sm"
+                      className="w-full sm:w-auto h-9 sm:h-10 text-xs sm:text-sm font-medium rounded-lg border-border hover:bg-muted/40"
+                    >
+                      <Settings className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                      Settings
+                    </Button>
+                  </div>
+                </div>
+                
+                <Button
+                  onClick={closeBanner}
+                  variant="ghost"
+                  size="sm"
+                  className="flex-shrink-0 w-8 h-8 sm:w-9 sm:h-9 p-0 rounded-lg hover:bg-muted/40"
+                >
+                  <X className="w-4 h-4 sm:w-5 sm:h-5" />
+                </Button>
               </div>
-              <p className="text-sm text-muted-foreground ml-6">
-                Essential cookies required for basic site functionality, security, and user authentication. 
-                These cannot be disabled.
-              </p>
-            </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
+      {/* Cookie Settings Dialog - Mobile First Responsive */}
+      <Dialog open={showSettings} onOpenChange={setShowSettings}>
+        <DialogContent className="w-full max-w-md sm:max-w-lg mx-4 sm:mx-auto p-4 sm:p-6">
+          <DialogHeader>
+            <DialogTitle className="text-lg sm:text-xl font-semibold flex items-center gap-2">
+              <Settings className="w-5 h-5 sm:w-6 sm:h-6" />
+              Cookie Preferences
+            </DialogTitle>
+            <DialogDescription className="text-sm sm:text-base text-muted-foreground">
+              Customize how we use cookies to improve your experience.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 sm:space-y-6">
+            {/* Essential Cookies */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
+                  <div>
+                    <h4 className="text-sm sm:text-base font-medium text-foreground">Essential Cookies</h4>
+                    <p className="text-xs sm:text-sm text-muted-foreground">Required for basic functionality</p>
+                  </div>
+                </div>
+                <Badge variant="secondary" className="text-xs">Always Active</Badge>
+              </div>
+            </div>
+            
             {/* Analytics Cookies */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Checkbox 
-                    checked={preferences.analytics}
-                    onCheckedChange={() => togglePreference('analytics')}
-                  />
+                <div className="flex items-center gap-2">
+                  <Info className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />
                   <div>
-                    <h4 className="font-medium">Analytics Cookies</h4>
-                    <Badge variant="outline" className="text-xs mt-1">Optional</Badge>
+                    <h4 className="text-sm sm:text-base font-medium text-foreground">Analytics Cookies</h4>
+                    <p className="text-xs sm:text-sm text-muted-foreground">Help us improve our service</p>
                   </div>
                 </div>
+                <Checkbox 
+                  checked={preferences.analytics} 
+                  onCheckedChange={(checked) => updatePreference('analytics', checked as boolean)}
+                  className="rounded-md"
+                />
               </div>
-              <p className="text-sm text-muted-foreground ml-6">
-                Help us understand how visitors interact with our website by collecting and reporting information anonymously.
-                This includes Google Analytics and similar services. <strong>Enabling this helps us improve your experience!</strong>
-              </p>
             </div>
-
-            {/* Marketing Cookies */}
+            
+            {/* Personalization Cookies */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Checkbox 
-                    checked={preferences.marketing}
-                    onCheckedChange={() => togglePreference('marketing')}
-                  />
+                <div className="flex items-center gap-2">
+                  <Palette className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />
                   <div>
-                    <h4 className="font-medium">Marketing Cookies</h4>
-                    <Badge variant="outline" className="text-xs mt-1">Optional</Badge>
+                    <h4 className="text-sm sm:text-base font-medium text-foreground">Personalization</h4>
+                    <p className="text-xs sm:text-sm text-muted-foreground">Customize your experience</p>
                   </div>
                 </div>
-              </div>
-              <p className="text-sm text-muted-foreground ml-6">
-                Used to track visitors across websites to display relevant advertisements and measure ad campaign effectiveness.
-                This includes social media pixels and advertising networks. <strong>Enabling this helps us show you relevant content!</strong>
-              </p>
-            </div>
-
-            {/* Functional Cookies */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Checkbox 
-                    checked={preferences.functional}
-                    onCheckedChange={() => togglePreference('functional')}
-                  />
-                  <div>
-                    <h4 className="font-medium">Functional Cookies</h4>
-                    <Badge variant="outline" className="text-xs mt-1">Optional</Badge>
-                  </div>
-                </div>
-              </div>
-              <p className="text-sm text-muted-foreground ml-6">
-                Enable enhanced functionality like remembering your preferences, language settings, 
-                and providing personalized features. <strong>Enabling this gives you a better, personalized experience!</strong>
-              </p>
-            </div>
-
-            {/* Additional Information */}
-            <div className="bg-muted/50 p-4 rounded-lg">
-              <div className="flex gap-3">
-                <Info className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                <div className="text-sm">
-                  <p className="font-medium mb-1">Your Privacy Rights</p>
-                  <p className="text-muted-foreground mb-2">
-                    You have the right to withdraw consent at any time. You can change your preferences 
-                    by revisiting this dialog or contacting us directly.
-                  </p>
-                  <p className="text-muted-foreground">
-                    For more information, please read our{' '}
-                    <Link href="/privacy" className="text-primary hover:underline">
-                      Privacy Policy
-                    </Link>.
-                  </p>
-                </div>
+                <Checkbox 
+                  checked={preferences.personalization} 
+                  onCheckedChange={(checked) => updatePreference('personalization', checked as boolean)}
+                  className="rounded-md"
+                />
               </div>
             </div>
           </div>
-
-          <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t">
+          
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-4 sm:pt-6">
             <Button 
-              variant="outline" 
-              onClick={() => setShowSettings(false)}
-              className="flex-1"
-            >
-              Cancel
-            </Button>
-            <Button 
-              variant="outline" 
-              onClick={acceptNecessary}
-              className="flex-1"
-            >
-              Accept Necessary Only
-            </Button>
-            <Button 
-              onClick={saveCustomPreferences}
-              className="flex-1 bg-primary hover:bg-primary/90"
+              onClick={savePreferences} 
+              className="w-full sm:w-auto h-10 sm:h-11 text-sm sm:text-base font-medium rounded-lg"
             >
               Save Preferences
             </Button>
+            <Button 
+              onClick={() => setShowSettings(false)} 
+              variant="outline" 
+              className="w-full sm:w-auto h-10 sm:h-11 text-sm sm:text-base font-medium rounded-lg border-border hover:bg-muted/40"
+            >
+              Cancel
+            </Button>
+          </div>
+          
+          <div className="pt-4 sm:pt-6 border-t border-border/50">
+            <div className="text-xs sm:text-sm text-muted-foreground space-y-2">
+              <p>
+                Learn more about our{' '}
+                <Link href="/privacy" className="text-primary hover:underline underline-offset-2">
+                  Privacy Policy
+                </Link>
+                {' '}and{' '}
+                <Link href="/cookies" className="text-primary hover:underline underline-offset-2">
+                  Cookie Policy
+                </Link>
+              </p>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
     </>
   );
 }
+

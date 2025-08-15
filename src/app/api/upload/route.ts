@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import ImageKit from 'imagekit';
+import { cloudinary } from '@/lib/cloudinary';
 import { v4 as uuidv4 } from 'uuid';
 import path from 'path';
 
@@ -13,25 +13,24 @@ export const config = {
   },
 };
 
-const imagekit = new ImageKit({
-  publicKey: process.env.IMAGEKIT_PUBLIC_KEY!,
-  privateKey: process.env.IMAGEKIT_PRIVATE_KEY!,
-  urlEndpoint: process.env.IMAGEKIT_URL_ENDPOINT!,
-});
-
-// Helper function to retry ImageKit upload
+// Helper function to retry Cloudinary upload
 async function uploadWithRetry(uploadParams: any, maxRetries = 3): Promise<any> {
   let lastError: any;
   
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      console.log(`🔄 ImageKit upload attempt ${attempt}/${maxRetries}`);
-      const response = await imagekit.upload(uploadParams);
-      console.log(`✅ ImageKit upload successful on attempt ${attempt}`);
+      console.log(`🔄 Cloudinary upload attempt ${attempt}/${maxRetries}`);
+      const response = await cloudinary.uploader.upload(uploadParams.file, {
+        folder: 'capsera_uploads',
+        use_filename: true,
+        unique_filename: true,
+        overwrite: false,
+      });
+      console.log(`✅ Cloudinary upload successful on attempt ${attempt}`);
       return response;
     } catch (error: any) {
       lastError = error;
-      console.error(`❌ ImageKit upload attempt ${attempt} failed:`, error);
+      console.error(`❌ Cloudinary upload attempt ${attempt} failed:`, error);
       
       // If it's the last attempt, don't wait
       if (attempt < maxRetries) {
@@ -80,22 +79,23 @@ export async function POST(req: Request) {
     const uniqueFileName = `${uuidv4()}${fileExtension}`;
 
     // Sanitized logging - don't expose full URLs
-    console.log(`📤 Starting ImageKit upload for file: ${uniqueFileName} (${Math.round(file.size / 1024)}KB)`);
+    console.log(`📤 Starting Cloudinary upload for file: ${uniqueFileName} (${Math.round(file.size / 1024)}KB)`);
 
     const uploadParams = {
-      file: buffer,
+      file: `data:${file.type};base64,${buffer.toString('base64')}`,
       fileName: uniqueFileName,
-      folder: '/captioncraft_uploads/',
-      useUniqueFileName: true,
-      overwriteFile: false,
     };
 
-    // Use retry logic for ImageKit upload
+    // Use retry logic for Cloudinary upload
     const response = await uploadWithRetry(uploadParams, 3);
 
     // Sanitized success logging
-    console.log(`✅ ImageKit upload completed successfully for: ${uniqueFileName}`);
-    return NextResponse.json({ success: true, url: response.url }, { status: 200 });
+    console.log(`✅ Cloudinary upload completed successfully for: ${uniqueFileName}`);
+    return NextResponse.json({ 
+      success: true, 
+      url: response.secure_url,
+      publicId: response.public_id 
+    }, { status: 200 });
 
   } catch (error: any) {
     console.error('💥 Upload Error:', error.message);
@@ -104,8 +104,8 @@ export async function POST(req: Request) {
     let errorMessage = 'Upload failed. Please try again.';
     let statusCode = 500;
     
-    if (error.message?.includes('contact support@imagekit.io')) {
-      errorMessage = 'ImageKit service temporarily unavailable. Please try again in a moment.';
+    if (error.message?.includes('cloudinary') || error.message?.includes('CLOUDINARY')) {
+      errorMessage = 'Cloudinary service temporarily unavailable. Please try again in a moment.';
     } else if (error.message?.includes('network') || error.code === 'ENOTFOUND') {
       errorMessage = 'Network error. Please check your connection and try again.';
     } else if (error.message?.includes('timeout')) {

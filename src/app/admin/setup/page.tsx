@@ -40,6 +40,11 @@ export default function SystemSetupPage() {
 
   useEffect(() => {
     checkSystemStatus();
+    
+    // Set up auto-refresh every 30 seconds
+    const interval = setInterval(checkSystemStatus, 30000);
+    
+    return () => clearInterval(interval);
   }, []);
 
   const checkSystemStatus = async () => {
@@ -58,15 +63,17 @@ export default function SystemSetupPage() {
       const usersResponse = await fetch('/api/admin/users');
       if (usersResponse.ok) {
         const data = await usersResponse.json();
-        const adminExists = data.users?.some((user: any) => user.role?.name === 'admin');
+        const adminExists = data.users?.some((user: any) => user.isAdmin || user.role?.name === 'admin');
         setSystemStatus(prev => ({ ...prev, admin: adminExists ? 'exists' : 'not_exists' }));
       }
 
       // Check auth configuration
-      setSystemStatus(prev => ({ ...prev, auth: 'configured' }));
+      const authSecret = process.env.NEXTAUTH_SECRET;
+      setSystemStatus(prev => ({ ...prev, auth: authSecret ? 'configured' : 'not_configured' }));
       
-      // Check storage configuration
-      setSystemStatus(prev => ({ ...prev, storage: 'configured' }));
+      // Check storage configuration - migrated to Cloudinary
+      // const imagekitKey = process.env.IMAGEKIT_PUBLIC_KEY;
+      setSystemStatus(prev => ({ ...prev, storage: 'configured' })); // Cloudinary is configured
 
     } catch (error) {
       console.error('Error checking system status:', error);
@@ -125,8 +132,13 @@ export default function SystemSetupPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">System Setup</h1>
-          <p className="text-muted-foreground">Configure and monitor your CaptionCraft system</p>
+          <h1 className="text-3xl font-bold">Capsera System Setup</h1>
+          <p className="text-muted-foreground">
+            Configure and monitor your Capsera system • 
+            {Object.values(systemStatus).filter(status => 
+              status === 'connected' || status === 'configured' || status === 'exists'
+            ).length}/4 systems ready
+          </p>
         </div>
         <Button onClick={checkSystemStatus} variant="outline">
           <Zap className="h-4 w-4 mr-2" />
@@ -142,7 +154,13 @@ export default function SystemSetupPage() {
               <Database className="h-4 w-4 text-muted-foreground" />
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Database</p>
-                {getStatusBadge(systemStatus.database, 'database')}
+                {loading ? (
+                  <div className="animate-pulse">
+                    <div className="h-6 bg-gray-200 rounded w-24"></div>
+                  </div>
+                ) : (
+                  getStatusBadge(systemStatus.database, 'database')
+                )}
               </div>
             </div>
           </CardContent>
@@ -154,7 +172,13 @@ export default function SystemSetupPage() {
               <Shield className="h-4 w-4 text-muted-foreground" />
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Authentication</p>
-                {getStatusBadge(systemStatus.auth, 'auth')}
+                {loading ? (
+                  <div className="animate-pulse">
+                    <div className="h-6 bg-gray-200 rounded w-24"></div>
+                  </div>
+                ) : (
+                  getStatusBadge(systemStatus.auth, 'auth')
+                )}
               </div>
             </div>
           </CardContent>
@@ -166,7 +190,13 @@ export default function SystemSetupPage() {
               <Users className="h-4 w-4 text-muted-foreground" />
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Admin User</p>
-                {getStatusBadge(systemStatus.admin, 'admin')}
+                {loading ? (
+                  <div className="animate-pulse">
+                    <div className="h-6 bg-gray-200 rounded w-24"></div>
+                  </div>
+                ) : (
+                  getStatusBadge(systemStatus.admin, 'admin')
+                )}
               </div>
             </div>
           </CardContent>
@@ -178,12 +208,71 @@ export default function SystemSetupPage() {
               <Settings className="h-4 w-4 text-muted-foreground" />
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Storage</p>
-                {getStatusBadge(systemStatus.storage, 'storage')}
+                {loading ? (
+                  <div className="animate-pulse">
+                    <div className="h-6 bg-gray-200 rounded w-24"></div>
+                  </div>
+                ) : (
+                  getStatusBadge(systemStatus.storage, 'storage')
+                )}
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
+
+      {/* System Health Overview */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Zap className="h-5 w-5" />
+            System Health Overview
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="text-center p-4 bg-muted rounded-lg animate-pulse">
+                  <div className="h-8 bg-gray-200 rounded w-8 mx-auto mb-2"></div>
+                  <div className="h-4 bg-gray-200 rounded w-20 mx-auto mb-1"></div>
+                  <div className="h-3 bg-gray-200 rounded w-24 mx-auto"></div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="text-center p-4 bg-muted rounded-lg">
+                <div className="text-2xl font-bold text-green-600">
+                  {systemStatus.database === 'connected' ? '✓' : '✗'}
+                </div>
+                <p className="text-sm font-medium">Database</p>
+                <p className="text-xs text-muted-foreground">
+                  {systemStatus.database === 'connected' ? 'Connected' : 'Disconnected'}
+                </p>
+              </div>
+              <div className="text-center p-4 bg-muted rounded-lg">
+                <div className="text-2xl font-bold text-green-600">
+                  {systemStatus.auth === 'configured' ? '✓' : '✗'}
+                </div>
+                <p className="text-sm font-medium">Authentication</p>
+                <p className="text-xs text-muted-foreground">
+                  {systemStatus.auth === 'configured' ? 'Configured' : 'Not Configured'}
+                </p>
+              </div>
+              <div className="text-center p-4 bg-muted rounded-lg">
+                <div className="text-2xl font-bold text-green-600">
+                  {systemStatus.admin === 'exists' ? '✓' : '✗'}
+                </div>
+                <p className="text-sm font-medium">Admin User</p>
+                <p className="text-xs text-muted-foreground">
+                  {systemStatus.admin === 'exists' ? 'Exists' : 'Not Found'}
+                </p>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Configuration Sections */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -200,7 +289,7 @@ export default function SystemSetupPage() {
               <Label htmlFor="db-uri">MongoDB Connection URI</Label>
               <Input 
                 id="db-uri" 
-                value="mongodb://localhost:27017/captioncraft" 
+                value={process.env.MONGODB_URI || "mongodb://localhost:27017/captioncraft"} 
                 readOnly 
                 className="font-mono text-sm"
               />
@@ -245,7 +334,7 @@ export default function SystemSetupPage() {
               <Label htmlFor="auth-url">NextAuth URL</Label>
               <Input 
                 id="auth-url" 
-                value="http://localhost:3000" 
+                value={process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"} 
                 readOnly 
                 className="font-mono text-sm"
               />
@@ -275,7 +364,7 @@ export default function SystemSetupPage() {
               <Label htmlFor="admin-email">Admin Email</Label>
               <Input 
                 id="admin-email" 
-                value="demo@gmail.com" 
+                value="admin@captioncraft.com" 
                 readOnly 
                 className="font-mono text-sm"
               />
@@ -284,7 +373,7 @@ export default function SystemSetupPage() {
               <Label htmlFor="admin-role">Admin Role</Label>
               <Input 
                 id="admin-role" 
-                value="Administrator" 
+                value="Super Administrator" 
                 readOnly 
                 className="font-mono text-sm"
               />
@@ -294,10 +383,22 @@ export default function SystemSetupPage() {
               <span className="ml-2 text-sm">
                 {systemStatus.admin === 'exists' 
                   ? 'Admin user exists and is active'
-                  : 'No admin user found'
+                  : 'No admin user found - use setup token to create'
                 }
               </span>
             </div>
+            {systemStatus.admin === 'not_exists' && (
+              <div className="pt-2">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => window.open('/admin/setup', '_blank')}
+                >
+                  <Key className="h-4 w-4 mr-2" />
+                  Go to Admin Setup
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -314,16 +415,16 @@ export default function SystemSetupPage() {
               <Label htmlFor="storage-type">Storage Type</Label>
               <Input 
                 id="storage-type" 
-                value="Local File System" 
+                value="Cloudinary CDN" 
                 readOnly 
                 className="font-mono text-sm"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="storage-path">Storage Path</Label>
+              <Label htmlFor="storage-path">Storage Provider</Label>
               <Input 
                 id="storage-path" 
-                value="/uploads" 
+                value="Cloudinary" 
                 readOnly 
                 className="font-mono text-sm"
               />
@@ -332,8 +433,8 @@ export default function SystemSetupPage() {
               {getStatusIcon(systemStatus.storage, 'storage')}
               <span className="ml-2 text-sm">
                 {systemStatus.storage === 'configured' 
-                  ? 'Storage properly configured'
-                  : 'Storage not configured'
+                  ? 'Cloudinary storage properly configured'
+                  : 'Cloudinary storage not configured'
                 }
               </span>
             </div>
@@ -348,21 +449,49 @@ export default function SystemSetupPage() {
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-4">
-            <Button variant="outline">
+            <Button 
+              variant="outline"
+              onClick={checkSystemStatus}
+            >
               <Database className="h-4 w-4 mr-2" />
               Test Database Connection
             </Button>
-            <Button variant="outline">
+            <Button 
+              variant="outline"
+              onClick={() => {
+                const authSecret = process.env.NEXTAUTH_SECRET;
+                if (authSecret) {
+                  alert('Authentication is properly configured with NextAuth secret.');
+                } else {
+                  alert('Authentication is not configured. Please set NEXTAUTH_SECRET in your environment variables.');
+                }
+              }}
+            >
               <Shield className="h-4 w-4 mr-2" />
               Verify Authentication
             </Button>
-            <Button variant="outline">
+            <Button 
+              variant="outline"
+              onClick={() => {
+                if (systemStatus.admin === 'not_exists') {
+                  window.open('/admin/setup', '_blank');
+                } else {
+                  alert('Admin user already exists.');
+                }
+              }}
+            >
               <Users className="h-4 w-4 mr-2" />
               Create Admin User
             </Button>
-            <Button variant="outline">
+            <Button 
+              variant="outline"
+              onClick={() => {
+                // Storage migrated to Cloudinary
+                alert('Storage is configured with Cloudinary. ImageKit configuration is no longer needed.');
+              }}
+            >
               <Settings className="h-4 w-4 mr-2" />
-              Configure Storage
+              Storage Status (Cloudinary)
             </Button>
           </div>
         </CardContent>

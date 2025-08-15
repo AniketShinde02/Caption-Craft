@@ -87,7 +87,7 @@ import { sendPasswordResetEmail } from '@/lib/mail';
 
 await sendPasswordResetEmail(
   'user@example.com',
-  'https://captioncraft.com/reset?token=abc123'
+  'https://ai-caption-generator-pied.vercel.app/reset?token=abc123'
 );
 ```
 
@@ -200,8 +200,8 @@ SMTP_PASS=your-password
 SMTP_FROM=CaptionCraft <ai.captioncraft@outlook.com>
 
 # Application URLs
-NEXTAUTH_URL=https://captioncraft.com
-NEXT_PUBLIC_APP_URL=https://captioncraft.com
+NEXTAUTH_URL=https://ai-caption-generator-pied.vercel.app
+NEXT_PUBLIC_APP_URL=https://ai-caption-generator-pied.vercel.app
 ```
 
 ### **SMTP Providers**

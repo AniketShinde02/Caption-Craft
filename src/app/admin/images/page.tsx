@@ -85,33 +85,43 @@ export default function ImageManagementPage() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [moderationNotes, setModerationNotes] = useState('');
   const [moderationAction, setModerationAction] = useState<'approve' | 'reject' | 'flag'>('approve');
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [imagesPerPage] = useState(12);
+  const [totalImages, setTotalImages] = useState(0);
 
   // Fetch REAL data from database
-  useEffect(() => {
-    const fetchImages = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch('/api/admin/images');
-        
-        if (response.ok) {
-          const data = await response.json();
-          setImages(data.images || []);
-          setStorageMetrics(data.storageMetrics || storageMetrics);
-          setModerationQueue(data.moderationQueue || moderationQueue);
-        } else {
-          console.error('Failed to fetch images:', response.status);
-          setImages([]);
-        }
-      } catch (error) {
-        console.error('Error fetching images:', error);
+  const fetchImages = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/admin/images');
+      
+      if (response.ok) {
+        const data = await response.json();
+        setImages(data.images || []);
+        setStorageMetrics(data.storageMetrics || storageMetrics);
+        setModerationQueue(data.moderationQueue || moderationQueue);
+      } else {
+        console.error('Failed to fetch images:', response.status);
         setImages([]);
-      } finally {
-        setLoading(false);
       }
-    };
+    } catch (error) {
+      console.error('Error fetching images:', error);
+      setImages([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    if (status === 'authenticated' && session?.user?.role?.name === 'admin') {
+  useEffect(() => {
+    if (status === 'authenticated') {
       fetchImages();
+      
+      // Set up auto-refresh every 60 seconds
+      const interval = setInterval(fetchImages, 60000);
+      
+      return () => clearInterval(interval);
     }
   }, [session, status]);
 
@@ -127,6 +137,16 @@ export default function ImageManagementPage() {
     
     return matchesSearch && matchesStatus && matchesFormat;
   });
+
+  // Pagination logic
+  const indexOfLastImage = currentPage * imagesPerPage;
+  const indexOfFirstImage = indexOfLastImage - imagesPerPage;
+  const currentImages = filteredImages.slice(indexOfFirstImage, indexOfLastImage);
+  const totalPages = Math.ceil(filteredImages.length / imagesPerPage);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
 
   const handleModeration = async () => {
     if (!selectedImage || !moderationNotes) return;
@@ -167,6 +187,9 @@ export default function ImageManagementPage() {
 
         updatedImage.moderationNotes = moderationNotes;
         setImages(prev => prev.map(img => img.id === selectedImage.id ? updatedImage : img));
+        
+        // Refresh data after moderation
+        setTimeout(() => fetchImages(), 1000);
         
         setShowModerationDialog(false);
         setSelectedImage(null);
@@ -212,6 +235,10 @@ export default function ImageManagementPage() {
         }
 
         setImages(prev => prev.filter(img => img.id !== imageId));
+        
+        // Refresh data after deletion
+        setTimeout(() => fetchImages(), 1000);
+        
         setShowDeleteDialog(false);
         setSelectedImage(null);
       } else {
@@ -253,7 +280,7 @@ export default function ImageManagementPage() {
     );
   }
 
-  if (!session?.user || session.user.role?.name !== 'admin') {
+  if (!session?.user) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
@@ -268,9 +295,21 @@ export default function ImageManagementPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Image Management</h1>
-          <p className="text-muted-foreground">Manage and moderate user-uploaded images</p>
+          <p className="text-muted-foreground">
+            Manage and moderate user-uploaded images • {loading ? 'Loading...' : `${images.length} total images`}
+          </p>
         </div>
         <div className="flex gap-2">
+          <Button 
+            variant="outline"
+            onClick={() => {
+              setLoading(true);
+              fetchImages();
+            }}
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
           <Button variant="outline">
             <Settings className="h-4 w-4 mr-2" />
             Settings
@@ -289,8 +328,17 @@ export default function ImageManagementPage() {
             <CardTitle className="text-sm font-medium">Total Images</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{storageMetrics.totalImages.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">Total uploaded</p>
+            {loading ? (
+              <div className="animate-pulse">
+                <div className="h-8 bg-gray-200 rounded w-16 mb-1"></div>
+                <div className="h-3 bg-gray-200 rounded w-24"></div>
+              </div>
+            ) : (
+              <>
+                <div className="text-2xl font-bold">{storageMetrics.totalImages.toLocaleString()}</div>
+                <p className="text-xs text-muted-foreground">Total uploaded</p>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -299,8 +347,17 @@ export default function ImageManagementPage() {
             <CardTitle className="text-sm font-medium">Storage Used</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{storageMetrics.usedStorage}</div>
-            <p className="text-xs text-muted-foreground">of {storageMetrics.totalSize}</p>
+            {loading ? (
+              <div className="animate-pulse">
+                <div className="h-8 bg-gray-200 rounded w-20 mb-1"></div>
+                <div className="h-3 bg-gray-200 rounded w-16"></div>
+              </div>
+            ) : (
+              <>
+                <div className="text-2xl font-bold">{storageMetrics.usedStorage}</div>
+                <p className="text-xs text-muted-foreground">of {storageMetrics.totalSize}</p>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -309,8 +366,17 @@ export default function ImageManagementPage() {
             <CardTitle className="text-sm font-medium">Pending Review</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">{moderationQueue.pending}</div>
-            <p className="text-xs text-muted-foreground">Awaiting moderation</p>
+            {loading ? (
+              <div className="animate-pulse">
+                <div className="h-8 bg-gray-200 rounded w-12 mb-1"></div>
+                <div className="h-3 bg-gray-200 rounded w-28"></div>
+              </div>
+            ) : (
+              <>
+                <div className="text-2xl font-bold text-yellow-600">{moderationQueue.pending}</div>
+                <p className="text-xs text-muted-foreground">Awaiting moderation</p>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -319,8 +385,17 @@ export default function ImageManagementPage() {
             <CardTitle className="text-sm font-medium">Today's Uploads</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{storageMetrics.imagesToday}</div>
-            <p className="text-xs text-muted-foreground">New images today</p>
+            {loading ? (
+              <div className="animate-pulse">
+                <div className="h-8 bg-gray-200 rounded w-12 mb-1"></div>
+                <div className="text-xs text-muted-foreground">New images today</div>
+              </div>
+            ) : (
+              <>
+                <div className="text-2xl font-bold">{storageMetrics.imagesToday}</div>
+                <p className="text-xs text-muted-foreground">New images today</p>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -332,27 +407,55 @@ export default function ImageManagementPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div>
-              <div className="flex justify-between text-sm mb-2">
-                <span>Storage Used</span>
-                <span>{storageMetrics.storagePercentage.toFixed(1)}%</span>
+            {loading ? (
+              <div className="animate-pulse space-y-4">
+                <div>
+                  <div className="flex justify-between text-sm mb-2">
+                    <div className="h-4 bg-gray-200 rounded w-20"></div>
+                    <div className="h-4 bg-gray-200 rounded w-12"></div>
+                  </div>
+                  <div className="h-3 bg-gray-200 rounded"></div>
+                </div>
+                <div className="grid grid-cols-3 gap-4 text-center">
+                  <div>
+                    <div className="h-6 bg-gray-200 rounded w-16 mx-auto mb-1"></div>
+                    <div className="h-3 bg-gray-200 rounded w-12 mx-auto"></div>
+                  </div>
+                  <div>
+                    <div className="h-6 bg-gray-200 rounded w-20 mx-auto mb-1"></div>
+                    <div className="h-3 bg-gray-200 rounded w-16 mx-auto"></div>
+                  </div>
+                  <div>
+                    <div className="h-6 bg-gray-200 rounded w-16 mx-auto mb-1"></div>
+                    <div className="h-3 bg-gray-200 rounded w-12 mx-auto"></div>
+                  </div>
+                </div>
               </div>
-              <Progress value={storageMetrics.storagePercentage} className="h-3" />
-            </div>
-            <div className="grid grid-cols-3 gap-4 text-center">
-              <div>
-                <div className="text-lg font-semibold">{storageMetrics.usedStorage}</div>
-                <div className="text-xs text-muted-foreground">Used</div>
-              </div>
-              <div>
-                <div className="text-lg font-semibold">{storageMetrics.availableStorage}</div>
-                <div className="text-xs text-muted-foreground">Available</div>
-              </div>
-              <div>
-                <div className="text-lg font-semibold">{storageMetrics.averageImageSize}</div>
-                <div className="text-xs text-muted-foreground">Avg Size</div>
-              </div>
-            </div>
+            ) : (
+              <>
+                <div>
+                  <div className="flex justify-between text-sm mb-2">
+                    <span>Storage Used</span>
+                    <span>{storageMetrics.storagePercentage.toFixed(1)}%</span>
+                  </div>
+                  <Progress value={storageMetrics.storagePercentage} className="h-3" />
+                </div>
+                <div className="grid grid-cols-3 gap-4 text-center">
+                  <div>
+                    <div className="text-lg font-semibold">{storageMetrics.usedStorage}</div>
+                    <div className="text-xs text-muted-foreground">Used</div>
+                  </div>
+                  <div>
+                    <div className="text-lg font-semibold">{storageMetrics.availableStorage}</div>
+                    <div className="text-xs text-muted-foreground">Available</div>
+                  </div>
+                  <div>
+                    <div className="text-lg font-semibold">{storageMetrics.averageImageSize}</div>
+                    <div className="text-xs text-muted-foreground">Avg Size</div>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -398,97 +501,138 @@ export default function ImageManagementPage() {
         </CardContent>
       </Card>
 
-      {/* Images List */}
+      {/* Images Grid */}
       <Card>
         <CardHeader>
           <CardTitle>Images ({filteredImages.length})</CardTitle>
           <CardDescription>Manage and moderate user-uploaded images</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {filteredImages.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                No images found matching the current filters.
-              </div>
-            ) : (
-              filteredImages.map((image) => (
-                <div key={image.id} className="flex items-center space-x-4 p-4 border rounded-lg">
-                  <div className="w-16 h-16 bg-gray-100 rounded flex items-center justify-center overflow-hidden">
-                    {image.thumbnailUrl ? (
-                      <img 
-                        src={image.thumbnailUrl} 
-                        alt={image.originalName}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          // Fallback to placeholder if image fails to load
-                          e.currentTarget.style.display = 'none';
-                          e.currentTarget.nextElementSibling!.style.display = 'flex';
-                        }}
-                      />
-                    ) : null}
-                    <div className="w-full h-full flex items-center justify-center bg-gray-100" style={{ display: image.thumbnailUrl ? 'none' : 'flex' }}>
-                      <Image className="h-8 w-8 text-gray-400" />
+          {loading ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+              {[...Array(12)].map((_, i) => (
+                <div key={i} className="animate-pulse">
+                  <div className="w-full h-32 bg-gray-200 rounded-lg mb-2"></div>
+                  <div className="h-3 bg-gray-200 rounded w-3/4 mb-1"></div>
+                  <div className="h-2 bg-gray-200 rounded w-1/2"></div>
+                </div>
+              ))}
+            </div>
+          ) : filteredImages.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <Image className="h-16 w-16 mx-auto mb-4 text-gray-300" />
+              <p className="text-lg font-medium">No images found</p>
+              <p className="text-sm">No images match the current filters.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+              {filteredImages.map((image) => (
+                <div key={image.id} className="group relative">
+                  {/* Image Card */}
+                  <div className="relative overflow-hidden rounded-lg border bg-background hover:shadow-md transition-shadow">
+                    {/* Image */}
+                    <div className="aspect-square overflow-hidden">
+                      {image.thumbnailUrl ? (
+                        <img 
+                          src={image.thumbnailUrl} 
+                          alt={image.originalName}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                          onError={(e) => {
+                            // Fallback to placeholder if image fails to load
+                            e.currentTarget.style.display = 'none';
+                            e.currentTarget.nextElementSibling!.style.display = 'flex';
+                          }}
+                        />
+                      ) : null}
+                      <div className="w-full h-full flex items-center justify-center bg-muted" style={{ display: image.thumbnailUrl ? 'none' : 'flex' }}>
+                        <Image className="h-8 w-8 text-muted-foreground" />
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2 mb-2">
-                      <h3 className="font-semibold">{image.originalName}</h3>
-                      <Badge className={getStatusColor(image.status)}>
+                    
+                    {/* Status Badge */}
+                    <div className="absolute top-2 left-2">
+                      <Badge className={`text-xs ${getStatusColor(image.status)}`}>
                         {image.status}
                       </Badge>
-                      <span className="text-sm text-muted-foreground">({image.filename})</span>
                     </div>
-                    <div className="flex items-center space-x-4 text-sm text-muted-foreground mb-2">
-                      <span>{image.size}</span>
-                      <span>•</span>
-                      <span>{image.dimensions}</span>
-                      <span>•</span>
-                      <span>{image.format}</span>
-                      <span>•</span>
-                      <span>Uploaded by: {image.uploadedBy}</span>
-                      <span>•</span>
-                      <span>{new Date(image.uploadedAt).toLocaleDateString()}</span>
+                    
+                    {/* Action Buttons - Hidden by default, shown on hover */}
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-2">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedImage(image);
+                          setShowModerationDialog(true);
+                        }}
+                        className="h-8 w-8 p-0"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedImage(image);
+                          setShowDeleteDialog(true);
+                        }}
+                        className="h-8 w-8 p-0"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      {image.tags.map((tag, index) => (
-                        <Badge key={index} variant="outline" className="text-xs">
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
-                    {image.flaggedReason && (
-                      <div className="mt-2 text-sm text-orange-600">
-                        <strong>Flagged:</strong> {image.flaggedReason}
-                      </div>
-                    )}
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setSelectedImage(image);
-                        setShowModerationDialog(true);
-                      }}
-                    >
-                      <Eye className="h-4 w-4 mr-2" />
-                      Review
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setSelectedImage(image);
-                        setShowDeleteDialog(true);
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                  
+                  {/* Image Info */}
+                  <div className="mt-2 space-y-1">
+                    <p className="text-xs font-medium truncate" title={image.originalName}>
+                      {image.originalName}
+                    </p>
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span>{image.size}</span>
+                      <span>{image.format}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground truncate">
+                      by {image.uploadedBy}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(image.uploadedAt).toLocaleDateString()}
+                    </p>
                   </div>
                 </div>
-              ))
-            )}
-          </div>
+              ))}
+            </div>
+          )}
+          
+          {/* Pagination */}
+          {!loading && filteredImages.length > 0 && (
+            <div className="mt-6 flex items-center justify-between">
+              <div className="text-sm text-muted-foreground">
+                Showing {((currentPage - 1) * imagesPerPage) + 1} to {Math.min(currentPage * imagesPerPage, totalImages)} of {totalImages} images
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                >
+                  Previous
+                </Button>
+                <span className="text-sm">
+                  Page {currentPage} of {Math.ceil(totalImages / imagesPerPage)}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage >= Math.ceil(totalImages / imagesPerPage)}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 

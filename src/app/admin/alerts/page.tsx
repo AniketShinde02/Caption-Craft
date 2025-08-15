@@ -82,28 +82,28 @@ export default function SystemAlertsPage() {
   });
 
   // Fetch REAL data from database
-  useEffect(() => {
-    const fetchAlerts = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch('/api/admin/alerts');
-        
-        if (response.ok) {
-          const data = await response.json();
-          setAlerts(data.alerts || []);
-          setSystemHealth(data.systemHealth || systemHealth);
-        } else {
-          console.error('Failed to fetch alerts:', response.status);
-          setAlerts([]);
-        }
-      } catch (error) {
-        console.error('Error fetching alerts:', error);
+  const fetchAlerts = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/admin/alerts');
+      
+      if (response.ok) {
+        const data = await response.json();
+        setAlerts(data.alerts || []);
+        setSystemHealth(data.systemHealth || systemHealth);
+      } else {
+        console.error('Failed to fetch alerts:', response.status);
         setAlerts([]);
-      } finally {
-        setLoading(false);
       }
-    };
+    } catch (error) {
+      console.error('Error fetching alerts:', error);
+        setAlerts([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     if (status === 'authenticated' && session?.user?.role?.name === 'admin') {
       fetchAlerts();
     }
@@ -182,6 +182,9 @@ export default function SystemAlertsPage() {
       autoResolve: false
     });
     setIsCreateDialogOpen(false);
+    
+    // Refresh data to show updated alerts
+    setTimeout(() => fetchAlerts(), 500);
   };
 
   const handleAcknowledgeAlert = (alertId: string) => {
@@ -193,16 +196,25 @@ export default function SystemAlertsPage() {
         acknowledgedAt: new Date().toISOString()
       } : alert
     ));
+    
+    // Refresh data to show updated alerts
+    setTimeout(() => fetchAlerts(), 500);
   };
 
   const handleResolveAlert = (alertId: string) => {
     setAlerts(alerts.map(alert => 
       alert.id === alertId ? { ...alert, isActive: false } : alert
     ));
+    
+    // Refresh data to show updated alerts
+    setTimeout(() => fetchAlerts(), 500);
   };
 
   const handleDeleteAlert = (alertId: string) => {
     setAlerts(alerts.filter(alert => alert.id !== alertId));
+    
+    // Refresh data to show updated alerts
+    setTimeout(() => fetchAlerts(), 500);
   };
 
   const getAlertIcon = (type: SystemAlert['type']) => {
@@ -236,9 +248,22 @@ export default function SystemAlertsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">System Alerts</h1>
-          <p className="text-muted-foreground">Monitor system health and manage alerts</p>
+          <p className="text-muted-foreground">
+            Monitor system health and manage alerts • {alerts.length} total alerts
+          </p>
         </div>
         <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            onClick={() => {
+              setLoading(true);
+              fetchAlerts();
+            }}
+            disabled={loading}
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
           <Button variant="outline" onClick={() => setIsSettingsDialogOpen(true)}>
             <Settings className="h-4 w-4 mr-2" />
             Settings
@@ -251,16 +276,25 @@ export default function SystemAlertsPage() {
       </div>
 
       {/* System Health Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">System Status</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${getHealthStatusColor(systemHealth.status)}`}>
-              {systemHealth.status.charAt(0).toUpperCase() + systemHealth.status.slice(1)}
-            </div>
-            <p className="text-xs text-muted-foreground">Uptime: {systemHealth.uptime}</p>
+            {loading ? (
+              <div className="animate-pulse">
+                <div className="h-8 bg-muted rounded mb-2"></div>
+                <div className="h-3 bg-muted rounded"></div>
+              </div>
+            ) : (
+              <>
+                <div className={`text-xl font-bold ${getHealthStatusColor(systemHealth.status)}`}>
+                  {systemHealth.status.charAt(0).toUpperCase() + systemHealth.status.slice(1)}
+                </div>
+                <p className="text-xs text-muted-foreground">Uptime: {systemHealth.uptime}</p>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -269,8 +303,23 @@ export default function SystemAlertsPage() {
             <CardTitle className="text-sm font-medium">Response Time</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{systemHealth.responseTime}ms</div>
-            <p className="text-xs text-muted-foreground">Average</p>
+            {loading ? (
+              <div className="animate-pulse">
+                <div className="h-8 bg-muted rounded mb-2"></div>
+                <div className="h-3 bg-muted rounded"></div>
+              </div>
+            ) : (
+              <>
+                <div className="text-xl font-bold text-foreground break-words">
+                  {systemHealth.responseTime < 1000 ? (
+                    `${systemHealth.responseTime}ms`
+                  ) : (
+                    `${(systemHealth.responseTime / 1000).toFixed(1)}s`
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">Average</p>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -279,8 +328,17 @@ export default function SystemAlertsPage() {
             <CardTitle className="text-sm font-medium">Active Users</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{systemHealth.activeUsers}</div>
-            <p className="text-xs text-muted-foreground">Currently online</p>
+            {loading ? (
+              <div className="animate-pulse">
+                <div className="h-8 bg-muted rounded mb-2"></div>
+                <div className="h-3 bg-muted rounded"></div>
+              </div>
+            ) : (
+              <>
+                <div className="text-xl font-bold text-foreground">{systemHealth.activeUsers}</div>
+                <p className="text-xs text-muted-foreground">Currently online</p>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -289,10 +347,44 @@ export default function SystemAlertsPage() {
             <CardTitle className="text-sm font-medium">Memory Usage</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{systemHealth.memoryUsage}%</div>
-            <p className="text-xs text-muted-foreground">
-              {systemHealth.memoryUsage > 85 ? 'High usage' : 'Normal'}
-            </p>
+            {loading ? (
+              <div className="animate-pulse">
+                <div className="h-8 bg-muted rounded mb-2"></div>
+                <div className="h-3 bg-muted rounded"></div>
+              </div>
+            ) : (
+              <>
+                <div className="text-xl font-bold text-foreground">
+                  {systemHealth.memoryUsage}%
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {systemHealth.memoryUsage > 85 ? 'High usage' : 'Normal'}
+                </p>
+              </>
+            )}
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">CPU Usage</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="animate-pulse">
+                <div className="h-8 bg-muted rounded mb-2"></div>
+                <div className="h-3 bg-muted rounded"></div>
+              </div>
+            ) : (
+              <>
+                <div className="text-xl font-bold text-foreground">
+                  {systemHealth.cpuUsage}%
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {systemHealth.cpuUsage > 80 ? 'High load' : 'Normal'}
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -366,7 +458,22 @@ export default function SystemAlertsPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {filteredAlerts.length === 0 ? (
+            {loading ? (
+              <div className="space-y-4">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="p-4 border rounded-lg animate-pulse">
+                    <div className="flex items-start space-x-3">
+                      <div className="w-5 h-5 bg-muted rounded-full"></div>
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 bg-muted rounded w-3/4"></div>
+                        <div className="h-3 bg-muted rounded w-1/2"></div>
+                        <div className="h-3 bg-muted rounded w-1/4"></div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : filteredAlerts.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 No alerts found matching the current filters.
               </div>

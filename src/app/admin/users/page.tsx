@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -36,6 +37,7 @@ interface User {
 }
 
 export default function UsersPage() {
+  const { toast } = useToast();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -49,6 +51,19 @@ export default function UsersPage() {
   });
   const [viewingUser, setViewingUser] = useState<User | null>(null);
   const [showViewModal, setShowViewModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [createFormData, setCreateFormData] = useState({
+    email: '',
+    username: '',
+    password: '',
+    role: 'user',
+    isAdmin: false
+  });
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [usersPerPage] = useState(20);
+  const [totalUsers, setTotalUsers] = useState(0);
 
   // Fetch REAL data from database
   useEffect(() => {
@@ -79,9 +94,44 @@ export default function UsersPage() {
     fetchUsers();
   }, []);
 
-  // REMOVED: getMockUsers function - no more mock data!
-
   // CRUD Functions for User Management
+  const handleCreateUser = async () => {
+    try {
+      const response = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(createFormData)
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setUsers([...users, data.user]);
+        setShowCreateModal(false);
+        setCreateFormData({ email: '', username: '', password: '', role: 'user', isAdmin: false });
+        toast({
+          title: "Success",
+          description: "User created successfully",
+        });
+      } else {
+        const errorData = await response.json();
+        toast({
+          title: "Error",
+          description: `Failed to create user: ${errorData.error}`,
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Error creating user:', error);
+      toast({
+        title: "Error",
+        description: "Error creating user",
+        variant: "destructive"
+      });
+    }
+  };
+
   const handleEditUser = (user: User) => {
     setEditingUser(user);
     setEditFormData({
@@ -116,13 +166,24 @@ export default function UsersPage() {
         ));
         setShowEditModal(false);
         setEditingUser(null);
-        alert('User updated successfully');
+        toast({
+          title: "Success",
+          description: "User updated successfully",
+        });
       } else {
-        alert('Failed to update user');
+        toast({
+          title: "Error",
+          description: "Failed to update user",
+          variant: "destructive"
+        });
       }
     } catch (error) {
       console.error('Error updating user:', error);
-      alert('Error updating user');
+      toast({
+        title: "Error",
+        description: "Error updating user",
+        variant: "destructive"
+      });
     }
   };
 
@@ -134,16 +195,27 @@ export default function UsersPage() {
         });
         
         if (response.ok) {
-          // Remove user from local state
-          setUsers(users.filter(u => u._id !== user._id));
-          alert('User deleted successfully');
-        } else {
-          alert('Failed to delete user');
-        }
-      } catch (error) {
-        console.error('Error deleting user:', error);
-        alert('Error deleting user');
+                  // Remove user from local state
+        setUsers(users.filter(u => u._id !== user._id));
+        toast({
+          title: "Success",
+          description: "User deleted successfully",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to delete user",
+          variant: "destructive"
+        });
       }
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      toast({
+        title: "Error",
+        description: "Error deleting user",
+        variant: "destructive"
+      });
+    }
     }
   };
 
@@ -169,13 +241,24 @@ export default function UsersPage() {
         setUsers(users.map(u => 
           u._id === user._id ? { ...u, isActive: !u.isActive } : u
         ));
-        alert(`User ${user.isActive ? 'deactivated' : 'activated'} successfully`);
+        toast({
+          title: "Success",
+          description: `User ${user.isActive ? 'deactivated' : 'activated'} successfully`,
+        });
       } else {
-        alert('Failed to update user status');
+        toast({
+          title: "Error",
+          description: "Failed to update user status",
+          variant: "destructive"
+        });
       }
     } catch (error) {
       console.error('Error updating user status:', error);
-      alert('Error updating user status');
+      toast({
+        title: "Error",
+        description: "Error updating user status",
+        variant: "destructive"
+      });
     }
   };
 
@@ -185,6 +268,16 @@ export default function UsersPage() {
     const matchesRole = filterRole === 'all' || user.role?.name === filterRole;
     return matchesSearch && matchesRole;
   });
+
+  // Pagination logic
+  const indexOfLastUser = currentPage * usersPerPage;
+  const indexOfFirstUser = indexOfLastUser - usersPerPage;
+  const currentUsers = filteredUsers.slice(indexOfFirstUser, indexOfLastUser);
+  const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
 
   const getRoleBadgeVariant = (roleName: string) => {
     switch (roleName) {
@@ -216,7 +309,7 @@ export default function UsersPage() {
             <h1 className="text-2xl sm:text-3xl font-bold">User Management</h1>
             <p className="text-muted-foreground text-sm sm:text-base">Manage user accounts and permissions</p>
           </div>
-          <Button className="h-10 sm:h-9 text-sm">
+          <Button onClick={() => setShowCreateModal(true)} className="h-10 sm:h-9 text-sm">
             <UserPlus className="h-4 w-4 mr-2" />
             <span className="hidden sm:inline">Add User</span>
             <span className="sm:hidden">Add</span>
@@ -248,7 +341,7 @@ export default function UsersPage() {
           <h1 className="text-2xl sm:text-3xl font-bold">User Management</h1>
           <p className="text-muted-foreground text-sm sm:text-base">Manage user accounts and permissions</p>
         </div>
-        <Button className="h-10 sm:h-9 text-sm">
+        <Button onClick={() => setShowCreateModal(true)} className="h-10 sm:h-9 text-sm">
           <UserPlus className="h-4 w-4 mr-2" />
           <span className="hidden sm:inline">Add User</span>
           <span className="sm:hidden">Add</span>
@@ -363,7 +456,7 @@ export default function UsersPage() {
                 </tr>
               </thead>
               <tbody>
-                {filteredUsers.map((user) => (
+                {currentUsers.map((user) => (
                   <tr key={user._id} className="border-b border-border/50">
                     <td className="py-3 px-2 sm:px-4">
                       <div>
@@ -432,6 +525,36 @@ export default function UsersPage() {
               </tbody>
             </table>
           </div>
+          
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between px-4 py-3 border-t">
+              <div className="text-sm text-muted-foreground">
+                Showing {indexOfFirstUser + 1} to {Math.min(indexOfLastUser, filteredUsers.length)} of {filteredUsers.length} users
+              </div>
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                >
+                  Previous
+                </Button>
+                <span className="text-sm text-muted-foreground">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -519,6 +642,76 @@ export default function UsersPage() {
           <div className="flex justify-end pt-4">
             <Button variant="outline" onClick={() => setShowViewModal(false)} className="h-10 sm:h-9 text-sm">
               Close
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create User Modal */}
+      <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
+        <DialogContent className="w-[95vw] max-w-md">
+          <DialogHeader>
+            <DialogTitle>Create New User</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Email</label>
+              <Input
+                type="email"
+                value={createFormData.email}
+                onChange={(e) => setCreateFormData(prev => ({ ...prev, email: e.target.value }))}
+                placeholder="user@example.com"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Username</label>
+              <Input
+                value={createFormData.username}
+                onChange={(e) => setCreateFormData(prev => ({ ...prev, username: e.target.value }))}
+                placeholder="username"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Password</label>
+              <Input
+                type="password"
+                value={createFormData.password}
+                onChange={(e) => setCreateFormData(prev => ({ ...prev, password: e.target.value }))}
+                placeholder="Minimum 8 characters"
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Role</label>
+              <select
+                value={createFormData.role}
+                onChange={(e) => setCreateFormData(prev => ({ ...prev, role: e.target.value }))}
+                className="w-full px-3 py-2 border border-input rounded-md bg-background h-10 text-sm"
+              >
+                <option value="user">User</option>
+                <option value="moderator">Moderator</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="isAdmin"
+                checked={createFormData.isAdmin}
+                onChange={(e) => setCreateFormData(prev => ({ ...prev, isAdmin: e.target.checked }))}
+                className="rounded"
+              />
+              <label htmlFor="isAdmin" className="text-sm font-medium">Create as Admin User</label>
+            </div>
+          </div>
+          <div className="flex justify-end space-x-2 pt-4">
+            <Button variant="outline" onClick={() => setShowCreateModal(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleCreateUser}>
+              Create User
             </Button>
           </div>
         </DialogContent>
